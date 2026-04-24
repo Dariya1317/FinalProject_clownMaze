@@ -66,4 +66,10 @@ public final class EventBus {
     public record GameWinEvent(float elapsedSeconds) {}
 
     public record ScreamerEvent() {}
+
+    /** Hero successfully escaped a trap via mash mechanic. */
+    public record TrapEscapeEvent(float heroX, float heroY) {}
+
+    /** Hero pressed the interaction key (E) — consumed by door/riddle systems. */
+    public record HeroInteractEvent(float heroX, float heroY) {}
 }
