@@ -3,28 +3,8 @@ package com.example.clownmaze.core.entity;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
 
-/**
- * Reads keyboard input each frame and dispatches {@link ICommand}s to the {@link Hero}.
- *
- * <h3>Responsibilities (SRP)</h3>
- * Only translates raw key events into commands — contains no game logic.
- *
- * <h3>Controls</h3>
- * <ul>
- *   <li>WASD / Arrow keys — movement</li>
- *   <li>Left/Right Shift + WASD — run (ignored when SLOWED)</li>
- *   <li>E — interact (pick up key, answer riddle, open door)</li>
- *   <li>Any key while TRAPPED — mash to escape</li>
- * </ul>
- *
- * <p>Patterns: Command (GoF #10) — each action becomes an {@link ICommand} object.
- */
 public final class PlayerInputHandler implements IInputHandler {
 
-    /**
-     * Keys that count as a mash press while the hero is trapped.
-     * Using a fixed set avoids polling every key code each frame.
-     */
     private static final int[] MASH_KEYS = {
         Keys.SPACE, Keys.E,
         Keys.W, Keys.A, Keys.S, Keys.D,
@@ -37,15 +17,6 @@ public final class PlayerInputHandler implements IInputHandler {
         this.hero = hero;
     }
 
-    // ------------------------------------------------------------------ //
-    //  IInputHandler                                                       //
-    // ------------------------------------------------------------------ //
-
-    /**
-     * Must be called once per frame from GameScreen, before rendering.
-     *
-     * @param delta elapsed time in seconds since the last frame
-     */
     @Override
     public void handleInput(float delta) {
         handleMash();
@@ -53,11 +24,6 @@ public final class PlayerInputHandler implements IInputHandler {
         handleInteraction();
     }
 
-    // ------------------------------------------------------------------ //
-    //  Private handlers                                                    //
-    // ------------------------------------------------------------------ //
-
-    /** One mash press per frame maximum; breaks after first detected keypress. */
     private void handleMash() {
         if (!hero.isTrapped()) return;
         for (int key : MASH_KEYS) {
@@ -80,7 +46,6 @@ public final class PlayerInputHandler implements IInputHandler {
 
         if (dx == 0f && dy == 0f) return;
 
-        // Normalise so diagonal movement isn't faster than cardinal
         float len = (float) Math.sqrt(dx * dx + dy * dy);
         dx /= len;
         dy /= len;

@@ -1,6 +1,9 @@
 package com.example.clownmaze.core;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public final class EventBus {
@@ -67,9 +70,7 @@ public final class EventBus {
 
     public record ScreamerEvent() {}
 
-    /** Hero successfully escaped a trap via mash mechanic. */
     public record TrapEscapeEvent(float heroX, float heroY) {}
 
-    /** Hero pressed the interaction key (E) — consumed by door/riddle systems. */
     public record HeroInteractEvent(float heroX, float heroY) {}
 }
