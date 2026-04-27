@@ -31,11 +31,11 @@ public final class ClownAI {
         this.y = startY;
 
         PatrolStrategy patrol = new PatrolStrategy(waypoints);
-        ChaseStrategy  chase  = new ChaseStrategy(walkabilityChecker, tileSize);
+        ChaseStrategy chase = new ChaseStrategy(walkabilityChecker, tileSize);
 
         patrolState = new PatrolState(patrol);
-        chaseState  = new ChaseState(chase);
-        killState   = new KillState();
+        chaseState = new ChaseState(chase);
+        killState = new KillState();
 
         currentState = patrolState;
         onRoomExit = e -> {
