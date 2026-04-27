@@ -15,19 +15,19 @@ import com.badlogic.gdx.utils.Disposable;
 
 public class LightingSystem implements Disposable {
 
-    private static final float TILE_PX      = 16f;
+    private static final float TILE_PX = 16f;
     private static final float TORCH_RADIUS = TILE_PX * 6f;
-    private static final float AMBIENT      = 0.93f;
+    private static final float AMBIENT = 0.93f;
 
-    private FrameBuffer         fbo;
+    private FrameBuffer fbo;
     private final ShapeRenderer shapes;
-    private final SpriteBatch   overlay;
-    private final Matrix4       proj   = new Matrix4();
-    private final Vector3       tmpVec = new Vector3();
+    private final SpriteBatch overlay;
+    private final Matrix4 proj = new Matrix4();
+    private final Vector3 tmpVec = new Vector3();
 
     public LightingSystem(int screenW, int screenH) {
-        fbo     = new FrameBuffer(Pixmap.Format.RGBA8888, screenW, screenH, false);
-        shapes  = new ShapeRenderer();
+        fbo = new FrameBuffer(Pixmap.Format.RGBA8888, screenW, screenH, false);
+        shapes = new ShapeRenderer();
         overlay = new SpriteBatch();
         proj.setToOrtho2D(0, 0, screenW, screenH);
     }

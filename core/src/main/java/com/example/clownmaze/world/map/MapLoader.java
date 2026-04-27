@@ -13,11 +13,11 @@ public final class MapLoader {
 
     public void load(String tmxPath) {
         dispose();
-        map            = new TmxMapLoader().load(tmxPath);
-        mapWidthTiles  = map.getProperties().get("width",      Integer.class);
-        mapHeightTiles = map.getProperties().get("height",     Integer.class);
-        tileWidthPx    = map.getProperties().get("tilewidth",  Integer.class);
-        tileHeightPx   = map.getProperties().get("tileheight", Integer.class);
+        map = new TmxMapLoader().load(tmxPath);
+        mapWidthTiles = map.getProperties().get("width", Integer.class);
+        mapHeightTiles = map.getProperties().get("height", Integer.class);
+        tileWidthPx = map.getProperties().get("tilewidth", Integer.class);
+        tileHeightPx = map.getProperties().get("tileheight", Integer.class);
     }
 
     public void dispose() {
