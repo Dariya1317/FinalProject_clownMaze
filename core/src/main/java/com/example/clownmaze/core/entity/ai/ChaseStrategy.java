@@ -1,13 +1,21 @@
 package com.example.clownmaze.core.entity.ai;
 
-import com.example.clownmaze.core.entity.WalkabilityChecker;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Set;
 
-import java.util.*;
+import com.example.clownmaze.core.entity.WalkabilityChecker;
 
 public final class ChaseStrategy implements ClownMovementStrategy {
 
     private static final float ARRIVAL_THRESHOLD = 0.001f;
-    private static final int   MAX_ITERATIONS    = 500;
+    private static final int MAX_ITERATIONS = 500;
 
     private final WalkabilityChecker walkabilityChecker;
     private final int tileSize;
@@ -17,7 +25,7 @@ public final class ChaseStrategy implements ClownMovementStrategy {
 
     public ChaseStrategy(WalkabilityChecker walkabilityChecker, int tileSize) {
         this.walkabilityChecker = walkabilityChecker;
-        this.tileSize           = tileSize;
+        this.tileSize = tileSize;
     }
 
     @Override
@@ -32,8 +40,8 @@ public final class ChaseStrategy implements ClownMovementStrategy {
         if (path.isEmpty()) return;
 
         float[] step = path.get(0);
-        float dx   = step[0] - clown.getX();
-        float dy   = step[1] - clown.getY();
+        float dx = step[0] - clown.getX();
+        float dy = step[1] - clown.getY();
         float dist = (float) Math.sqrt(dx * dx + dy * dy);
         if (dist < ARRIVAL_THRESHOLD) return;
 
@@ -65,7 +73,7 @@ public final class ChaseStrategy implements ClownMovementStrategy {
 
         Map<String, String>  cameFrom = new HashMap<>();
         Map<String, Integer> gScore   = new HashMap<>();
-        Set<String>          closed   = new HashSet<>();
+        Set<String> closed   = new HashSet<>();
 
         PriorityQueue<int[]> open = new PriorityQueue<>(
             Comparator.comparingInt(n -> n[2])
@@ -76,11 +84,11 @@ public final class ChaseStrategy implements ClownMovementStrategy {
         open.add(new int[]{startCol, startRow, h(startCol, startRow, goalCol, goalRow)});
 
         int[][] dirs  = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
-        int     limit = MAX_ITERATIONS;
+        int limit = MAX_ITERATIONS;
 
         while (!open.isEmpty() && limit-- > 0) {
-            int[]  curr    = open.poll();
-            int    col     = curr[0], row = curr[1];
+            int[] curr = open.poll();
+            int col = curr[0], row = curr[1];
             String currKey = key(col, row);
 
             if (closed.contains(currKey)) continue;
@@ -120,10 +128,10 @@ public final class ChaseStrategy implements ClownMovementStrategy {
         return result;
     }
 
-    private int    h(int c, int r, int gc, int gr) { return Math.abs(c - gc) + Math.abs(r - gr); }
-    private int    worldToCol(float wx)             { return (int) (wx / tileSize); }
-    private int    worldToRow(float wy)             { return (int) (wy / tileSize); }
-    private String key(int col, int row)            { return col + "," + row; }
+    private int h(int c, int r, int gc, int gr) { return Math.abs(c - gc) + Math.abs(r - gr); }
+    private int worldToCol(float wx) { return (int) (wx / tileSize); }
+    private int worldToRow(float wy) { return (int) (wy / tileSize); }
+    private String key(int col, int row) { return col + "," + row; }
 
     private int[] parseKey(String k) {
         int comma = k.indexOf(',');
