@@ -14,17 +14,14 @@ import com.example.clownmaze.core.entity.WalkabilityChecker;
 
 public final class ChaseStrategy implements ClownMovementStrategy {
 
-    static final float PATH_UPDATE_INTERVAL = 0.2f;
-    private static final float ARRIVAL_THRESHOLD = 4f;
-    private static final int   MAX_ITERATIONS = 500;
+    private static final float ARRIVAL_THRESHOLD = 0.001f;
+    private static final int MAX_ITERATIONS = 500;
 
     private final WalkabilityChecker walkabilityChecker;
     private final int tileSize;
 
     private float targetX, targetY;
-    private List<float[]> path = new ArrayList<>();
-    private int pathIndex;
-    private float pathTimer = PATH_UPDATE_INTERVAL; 
+    private List<float[]> path = List.of();
 
     public ChaseStrategy(WalkabilityChecker walkabilityChecker, int tileSize) {
         this.walkabilityChecker = walkabilityChecker;
@@ -39,21 +36,14 @@ public final class ChaseStrategy implements ClownMovementStrategy {
 
     @Override
     public void move(ClownAI clown, float delta) {
-        pathTimer += delta;
-        if (pathTimer >= PATH_UPDATE_INTERVAL || path.isEmpty()) {
-            recalculate(clown.getX(), clown.getY());
-            pathTimer = 0f;
-        }
-        if (pathIndex >= path.size()) return;
-        float[] next = path.get(pathIndex);
-        float dx   = next[0] - clown.getX();
-        float dy   = next[1] - clown.getY();
-        float dist = (float) Math.sqrt(dx * dx + dy * dy);
+        recalculate(clown.getX(), clown.getY());
+        if (path.isEmpty()) return;
 
-        if (dist < ARRIVAL_THRESHOLD) {
-            pathIndex++;
-            return;
-        }
+        float[] step = path.get(0);
+        float dx = step[0] - clown.getX();
+        float dy = step[1] - clown.getY();
+        float dist = (float) Math.sqrt(dx * dx + dy * dy);
+        if (dist < ARRIVAL_THRESHOLD) return;
 
         float speed = clown.getChaseSpeed();
         clown.setX(clown.getX() + (dx / dist) * speed * delta);
@@ -64,16 +54,23 @@ public final class ChaseStrategy implements ClownMovementStrategy {
         int sc = worldToCol(fromX),  sr = worldToRow(fromY);
         int gc = worldToCol(targetX), gr = worldToRow(targetY);
         List<int[]> tilePath = aStar(sc, sr, gc, gr);
-        path = new ArrayList<>(tilePath.size());
+        if (tilePath.isEmpty()) {
+            path = List.of();
+            return;
+        }
+        List<float[]> result = new ArrayList<>(tilePath.size());
         for (int[] tile : tilePath) {
-            path.add(new float[]{
+            result.add(new float[]{
                 tile[0] * tileSize + tileSize * 0.5f,
                 tile[1] * tileSize + tileSize * 0.5f
             });
         }
-        pathIndex = 0;
+        path = result;
     }
+
     List<int[]> aStar(int startCol, int startRow, int goalCol, int goalRow) {
+        if (startCol == goalCol && startRow == goalRow) return List.of();
+
         Map<String, String>  cameFrom = new HashMap<>();
         Map<String, Integer> gScore   = new HashMap<>();
         Set<String> closed   = new HashSet<>();
@@ -86,13 +83,14 @@ public final class ChaseStrategy implements ClownMovementStrategy {
         gScore.put(startKey, 0);
         open.add(new int[]{startCol, startRow, h(startCol, startRow, goalCol, goalRow)});
 
-        int[][] dirs = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+        int[][] dirs  = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
         int limit = MAX_ITERATIONS;
 
         while (!open.isEmpty() && limit-- > 0) {
             int[] curr = open.poll();
             int col = curr[0], row = curr[1];
             String currKey = key(col, row);
+
             if (closed.contains(currKey)) continue;
             closed.add(currKey);
 
@@ -130,18 +128,10 @@ public final class ChaseStrategy implements ClownMovementStrategy {
         return result;
     }
 
-    private int h(int c, int r, int gc, int gr){
-        return Math.abs(c - gc) + Math.abs(r - gr); 
-    }
-    private int worldToCol(float wx){ 
-        return (int) (wx / tileSize); 
-    }
-    private int worldToRow(float wy){ 
-        return (int) (wy / tileSize); 
-    }
-    private String key(int col, int row){ 
-        return col + "," + row; 
-    }
+    private int h(int c, int r, int gc, int gr) { return Math.abs(c - gc) + Math.abs(r - gr); }
+    private int worldToCol(float wx) { return (int) (wx / tileSize); }
+    private int worldToRow(float wy) { return (int) (wy / tileSize); }
+    private String key(int col, int row) { return col + "," + row; }
 
     private int[] parseKey(String k) {
         int comma = k.indexOf(',');
