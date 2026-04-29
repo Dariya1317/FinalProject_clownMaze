@@ -7,14 +7,14 @@ import com.badlogic.gdx.math.Rectangle;
 
 public final class Room {
 
-    private final int         id;
-    private final Rectangle   bounds;    
+    private final int id;
+    private final Rectangle bounds;    
     private final List<int[]> tileCoords;  
 
     Room(int id, Rectangle bounds, List<int[]> tileCoords) {
-        this.id          = id;
-        this.bounds      = new Rectangle(bounds);                   
-        this.tileCoords  = Collections.unmodifiableList(tileCoords);
+        this.id = id;
+        this.bounds = new Rectangle(bounds);                   
+        this.tileCoords = Collections.unmodifiableList(tileCoords);
     }
 
     public int getId() { return id; }

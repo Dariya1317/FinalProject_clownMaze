@@ -126,7 +126,7 @@ public final class RoomManager {
         if (layer == null) return result;
 
         int colMin = Math.max(0, worldToCol(bounds.x));
-        int colMax = Math.min(layer.getWidth()  - 1, worldToCol(bounds.x + bounds.width));
+        int colMax = Math.min(layer.getWidth() - 1, worldToCol(bounds.x + bounds.width));
         int rowMin = Math.max(0, worldToRow(bounds.y));
         int rowMax = Math.min(layer.getHeight() - 1, worldToRow(bounds.y + bounds.height));
 
