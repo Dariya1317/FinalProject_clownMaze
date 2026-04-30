@@ -1,6 +1,9 @@
 package com.example.clownmaze.core;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public final class EventBus {
@@ -66,4 +69,8 @@ public final class EventBus {
     public record GameWinEvent(float elapsedSeconds) {}
 
     public record ScreamerEvent() {}
+
+    public record TrapEscapeEvent(float heroX, float heroY) {}
+
+    public record HeroInteractEvent(float heroX, float heroY) {}
 }
