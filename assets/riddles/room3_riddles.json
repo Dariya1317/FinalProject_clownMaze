@@ -1,0 +1,33 @@
+{
+  "room": 3,
+  "riddles": [
+    {
+      "id": 0,
+      "type": "choice",
+      "question": "Which pattern allows changing object behaviour at runtime?",
+      "choices": ["State", "Observer", "Decorator", "Strategy"],
+      "answer": "Strategy"
+    },
+    {
+      "id": 1,
+      "type": "choice",
+      "question": "Which pattern ensures a class has only one instance?",
+      "choices": ["Prototype", "Singleton", "Factory", "Builder"],
+      "answer": "Singleton"
+    },
+    {
+      "id": 2,
+      "type": "choice",
+      "question": "Which pattern is used to notify objects about state changes?",
+      "choices": ["Command", "Observer", "Mediator", "Visitor"],
+      "answer": "Observer"
+    },
+    {
+      "id": 3,
+      "type": "choice",
+      "question": "Template Method belongs to which pattern group?",
+      "choices": ["Creational", "Structural", "Behavioral", "Anti-patterns"],
+      "answer": "Behavioral"
+    }
+  ]
+}

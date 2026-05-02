@@ -1,7 +1,6 @@
 package com.example.clownmaze.core.entity;
 
-enum HeroState {
+public enum HeroState {
     NORMAL,
-    SLOWED,
-    TRAPPED
+    SLOWED
 }

@@ -5,12 +5,6 @@ import com.badlogic.gdx.Input.Keys;
 
 public final class PlayerInputHandler implements IInputHandler {
 
-    private static final int[] MASH_KEYS = {
-        Keys.SPACE, Keys.E,
-        Keys.W, Keys.A, Keys.S, Keys.D,
-        Keys.UP, Keys.DOWN, Keys.LEFT, Keys.RIGHT
-    };
-
     private final Hero hero;
 
     public PlayerInputHandler(Hero hero) {
@@ -19,24 +13,11 @@ public final class PlayerInputHandler implements IInputHandler {
 
     @Override
     public void handleInput(float delta) {
-        handleMash();
         handleMovement(delta);
         handleInteraction();
     }
 
-    private void handleMash() {
-        if (!hero.isTrapped()) return;
-        for (int key : MASH_KEYS) {
-            if (Gdx.input.isKeyJustPressed(key)) {
-                new MashCommand(hero).execute();
-                break;
-            }
-        }
-    }
-
     private void handleMovement(float delta) {
-        if (hero.isTrapped()) return;
-
         float dx = 0f, dy = 0f;
 
         if (Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.UP))    dy += 1f;
@@ -50,11 +31,10 @@ public final class PlayerInputHandler implements IInputHandler {
         dx /= len;
         dy /= len;
 
-        boolean running = !hero.isSlowed()
-            && (Gdx.input.isKeyPressed(Keys.SHIFT_LEFT)
-             || Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT));
+        boolean wantsRun = Gdx.input.isKeyPressed(Keys.SHIFT_LEFT)
+                        || Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT);
 
-        float speed = running ? Hero.RUN_SPEED : Hero.WALK_SPEED;
+        float speed = hero.currentSpeed(wantsRun);
         new MoveCommand(hero, dx * speed, dy * speed, delta).execute();
     }
 
