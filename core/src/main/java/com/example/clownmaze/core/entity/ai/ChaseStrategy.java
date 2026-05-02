@@ -14,8 +14,8 @@ public final class ChaseStrategy implements ClownMovementStrategy {
 
     @Override
     public void move(ClownAI clown, float delta) {
-        float dx   = targetX - clown.getX();
-        float dy   = targetY - clown.getY();
+        float dx = targetX - clown.getX();
+        float dy = targetY - clown.getY();
         float dist = (float) Math.sqrt(dx * dx + dy * dy);
         if (dist < ARRIVAL_THRESHOLD) return;
 
