@@ -2,126 +2,111 @@ package com.example.clownmaze.core.entity;
 
 import java.util.function.Consumer;
 
-import com.example.clownmaze.core.EventBus;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 
+import com.example.clownmaze.core.EventBus;
 
 public final class Hero {
 
-    public static final float WALK_SPEED = 64f;
-
-    public static final float RUN_SPEED  = 112f;
-
-    public static final float TRAP_DURATION = 5f;
-
+    public static final float WALK_SPEED    = 64f;
+    public static final float RUN_SPEED     = 112f;
     public static final float SLOW_DURATION = 3f;
 
-    public static final int   MASH_REQUIRED = 8;
+    public static final int   SPRITE_WIDTH  = 16;
+    public static final int   SPRITE_HEIGHT = 32;
 
-    public static final int SPRITE_WIDTH  = 16;
+    private static final float EDGE_PADDING = 4f;
 
-    public static final int SPRITE_HEIGHT = 32;
+    private final BaseSpeedProvider baseSpeed = new BaseSpeedProvider(WALK_SPEED, RUN_SPEED);
 
-    private static final float COLLISION_RADIUS = 6f;
-
-    private float     x, y;
+    private float x, y;
     private HeroState state = HeroState.NORMAL;
 
-    private float trapTimer;
-    private float slowTimer;
-    private int   mashCount;
+    private SpeedProvider   currentSpeed = baseSpeed;
+    private SlowedDecorator slowed;
 
-    private final WalkabilityChecker collisionCheck;
+    private Rectangle bounds;
 
-    private final Consumer<EventBus.TrapCaughtEvent>    trapHandler;
     private final Consumer<EventBus.SpiderContactEvent> slowHandler;
 
-    public Hero(float startX, float startY, WalkabilityChecker collisionCheck) {
-        this.x              = startX;
-        this.y              = startY;
-        this.collisionCheck = collisionCheck;
+    public Hero(float startX, float startY) {
+        this.x = startX;
+        this.y = startY;
 
-        trapHandler = e -> trap();
-        slowHandler = e -> slow();
+        slowHandler = e -> applySlow();
+        EventBus.getInstance()
+            .subscribe(EventBus.SpiderContactEvent.class, slowHandler);
+    }
 
-        EventBus bus = EventBus.getInstance();
-        bus.subscribe(EventBus.TrapCaughtEvent.class,    trapHandler);
-        bus.subscribe(EventBus.SpiderContactEvent.class, slowHandler);
+    public void setBounds(Rectangle bounds) {
+        this.bounds = bounds;
+        clampToBounds();
     }
 
     public void update(float delta) {
-        switch (state) {
-            case TRAPPED -> tickTrapped(delta);
-            case SLOWED  -> tickSlowed(delta);
-            default      -> { /* NORMAL — nothing to tick */ }
-        }
-    }
-
-    private void tickTrapped(float delta) {
-        trapTimer -= delta;
-        if (trapTimer <= 0f) {
-            state     = HeroState.NORMAL;
-            mashCount = 0;
-            EventBus.getInstance().publish(new EventBus.TrapFailEvent(x, y));
-        }
-    }
-
-    private void tickSlowed(float delta) {
-        slowTimer -= delta;
-        if (slowTimer <= 0f) {
-            state = HeroState.NORMAL;
+        if (slowed != null) {
+            slowed.tick(delta);
+            if (slowed.isExpired()) {
+                currentSpeed = slowed.unwrap();
+                slowed = null;
+                state = HeroState.NORMAL;
+            }
         }
     }
 
     public void attemptMove(float dx, float dy) {
-        if (state == HeroState.TRAPPED) return;
-        if (canMoveTo(x + dx, y)) x += dx;
-        if (canMoveTo(x, y + dy)) y += dy;
+        x += dx;
+        y += dy;
+        clampToBounds();
     }
 
-    private boolean canMoveTo(float cx, float cy) {
-        float r = COLLISION_RADIUS;
-        return collisionCheck.isWalkable(cx - r, cy)
-            && collisionCheck.isWalkable(cx + r, cy)
-            && collisionCheck.isWalkable(cx, cy - r)
-            && collisionCheck.isWalkable(cx, cy + r);
+    private void clampToBounds() {
+        if (bounds == null) return;
+        float minX = bounds.x + EDGE_PADDING;
+        float maxX = bounds.x + bounds.width  - SPRITE_WIDTH  - EDGE_PADDING;
+        float minY = bounds.y + EDGE_PADDING;
+        float maxY = bounds.y + bounds.height - SPRITE_HEIGHT - EDGE_PADDING;
+        if (maxX < minX) maxX = minX;
+        if (maxY < minY) maxY = minY;
+        x = MathUtils.clamp(x, minX, maxX);
+        y = MathUtils.clamp(y, minY, maxY);
     }
 
-    public void trap() {
-        if (state == HeroState.TRAPPED) return;
-        state     = HeroState.TRAPPED;
-        trapTimer = TRAP_DURATION;
-        mashCount = 0;
+    public float currentSpeed(boolean wantsRun) {
+        return currentSpeed.speedFor(wantsRun);
     }
 
-    public void slow() {
-        if (state == HeroState.TRAPPED) return;
-        state     = HeroState.SLOWED;
-        slowTimer = SLOW_DURATION;
-    }
-
-    public void mash() {
-        if (state != HeroState.TRAPPED) return;
-        mashCount++;
-        if (mashCount >= MASH_REQUIRED) {
-            state     = HeroState.NORMAL;
-            mashCount = 0;
-            trapTimer = 0f;
-            EventBus.getInstance().publish(new EventBus.TrapEscapeEvent(x, y));
+    public void applySlow() {
+        if (slowed != null) {
+            slowed = new SlowedDecorator(slowed.unwrap(), SLOW_DURATION);
+        } else {
+            slowed = new SlowedDecorator(baseSpeed, SLOW_DURATION);
         }
+        currentSpeed = slowed;
+        state = HeroState.SLOWED;
+    }
+
+    public void teleportTo(float newX, float newY) {
+        this.x = newX;
+        this.y = newY;
+        if (slowed != null) {
+            currentSpeed = slowed.unwrap();
+            slowed = null;
+        }
+        state = HeroState.NORMAL;
+        clampToBounds();
     }
 
     public void dispose() {
-        EventBus bus = EventBus.getInstance();
-        bus.unsubscribe(EventBus.TrapCaughtEvent.class,    trapHandler);
-        bus.unsubscribe(EventBus.SpiderContactEvent.class, slowHandler);
+        EventBus.getInstance()
+            .unsubscribe(EventBus.SpiderContactEvent.class, slowHandler);
     }
 
-    public float     getX()          { return x; }
-    public float     getY()          { return y; }
-    public HeroState getState()      { return state; }
-    public float     getTrapTimer()  { return trapTimer; }
-    public float     getSlowTimer()  { return slowTimer; }
-    public int       getMashCount()  { return mashCount; }
-    public boolean   isTrapped()     { return state == HeroState.TRAPPED; }
-    public boolean   isSlowed()      { return state == HeroState.SLOWED; }
+    public float     getX()         { return x; }
+    public float     getY()         { return y; }
+    public Rectangle getBounds()    { return bounds; }
+    public HeroState getState()     { return state; }
+    public boolean   isSlowed()     { return state == HeroState.SLOWED; }
+    public float     getSlowTimer() { return slowed == null ? 0f : slowed.getRemaining(); }
 }

@@ -1,0 +1,26 @@
+{
+  "room": 2,
+  "riddles": [
+    {
+      "id": 0,
+      "type": "choice",
+      "question": "What will System.out.println(1+2+\"3\") print?",
+      "choices": ["33", "123", "15", "6"],
+      "answer": "33"
+    },
+    {
+      "id": 1,
+      "type": "choice",
+      "question": "Which modifier makes a variable immutable?",
+      "choices": ["static", "final", "private", "abstract"],
+      "answer": "final"
+    },
+    {
+      "id": 2,
+      "type": "choice",
+      "question": "What is JVM?",
+      "choices": ["Java Virtual Machine", "Java Version Manager", "Java Visual Mode", "Just-in-time VM"],
+      "answer": "Java Virtual Machine"
+    }
+  ]
+}
