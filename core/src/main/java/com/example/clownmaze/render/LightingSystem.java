@@ -15,9 +15,9 @@ import com.badlogic.gdx.utils.Disposable;
 public final class LightingSystem implements Disposable {
 
     public static final float TILE_PX        = 16f;
-    public static final float TORCH_RADIUS   = TILE_PX * 6f;
+    public static final float TORCH_RADIUS   = TILE_PX * 12f;
 
-    private static final float DARKNESS         = 0.92f;
+    private static final float DARKNESS         = 0.75f;
     private static final float TORCH_R          = 1.0f;
     private static final float TORCH_G          = 0.85f;
     private static final float TORCH_B          = 0.45f;
