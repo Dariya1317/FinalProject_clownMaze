@@ -16,9 +16,12 @@ public final class EventBus {
         if (instance == null) instance = new EventBus();
         return instance;
     }
-    
-    private final Map<Class<?>, List<Consumer<Object>>> listeners = new HashMap<>();
 
+    public static void resetInstance() {
+        instance = null;
+    }
+
+    private final Map<Class<?>, List<Consumer<Object>>> listeners = new HashMap<>();
 
     @SuppressWarnings("unchecked")
     public <T> void subscribe(Class<T> eventType, Consumer<T> handler) {
@@ -42,35 +45,27 @@ public final class EventBus {
         listeners.clear();
     }
 
-    public static void resetInstance() {
-        instance = null;
-    }
+    public record TimerExpiredEvent(int roomId) {}
 
-    public record RoomExitEvent(float heroX, float heroY) {}
-    
+    public record RoomCompleteEvent(int roomId) {}
+
     public record RoomEnterEvent(int roomId) {}
 
-    public record TrapCaughtEvent(float trapX, float trapY) {}
-    
-    public record TrapFailEvent(float trapX, float trapY) {}
+    public record RoomResetEvent(int roomId) {}
 
-    public record SpiderContactEvent(float spiderX, float spiderY) {}
+    public record ScreamerStartEvent(ScreamerSource source) {}
+
+    public record ScreamerEndEvent(ScreamerSource source) {}
+
+    public record HeroCaughtEvent() {}
+
+    public record SpiderContactEvent(int spiderId, float spiderX, float spiderY) {}
 
     public record RiddleSolvedEvent(int roomId, int riddleIndex) {}
 
-    public record RiddleTimerExpiredEvent(int roomId) {}
-
-    public record KeyCollectedEvent(int keyId, int targetRoom) {}
-
-    public record DoorUnlockedEvent(int roomId) {}
-
-    public record GameOverEvent(String reason) {}
-    
-    public record GameWinEvent(float elapsedSeconds) {}
-
-    public record ScreamerEvent() {}
-
-    public record TrapEscapeEvent(float heroX, float heroY) {}
+    public record GameWinEvent() {}
 
     public record HeroInteractEvent(float heroX, float heroY) {}
+
+    public enum ScreamerSource { CLOWN, SPIDER }
 }

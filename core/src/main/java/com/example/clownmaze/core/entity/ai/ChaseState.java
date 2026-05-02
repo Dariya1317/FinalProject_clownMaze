@@ -1,7 +1,9 @@
 package com.example.clownmaze.core.entity.ai;
 
 public final class ChaseState implements ClownState {
-    static final float KILL_RANGE = 8f;
+
+    static final float KILL_RANGE = 10f;
+
     private final ChaseStrategy strategy;
 
     public ChaseState(ChaseStrategy strategy) {
@@ -21,9 +23,11 @@ public final class ChaseState implements ClownState {
         float dx = clown.getX() - clown.getHeroX();
         float dy = clown.getY() - clown.getHeroY();
         if (dx * dx + dy * dy <= KILL_RANGE * KILL_RANGE) {
-            clown.kill("clown_caught");
+            clown.kill();
         }
     }
+
     @Override
-    public void exit(ClownAI clown) {}
+    public void exit(ClownAI clown) {
+    }
 }

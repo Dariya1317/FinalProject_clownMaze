@@ -3,7 +3,7 @@ package com.example.clownmaze.render;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.math.MathUtils;
 
-public class CameraController {
+public final class CameraController {
 
     private static final float LERP = 5f;
 
@@ -17,11 +17,19 @@ public class CameraController {
     }
 
     public void setBounds(float worldMinX, float worldMinY, float worldMaxX, float worldMaxY) {
-        minX = worldMinX + camera.viewportWidth  / 2f;
-        minY = worldMinY + camera.viewportHeight / 2f;
-        maxX = worldMaxX - camera.viewportWidth  / 2f;
-        maxY = worldMaxY - camera.viewportHeight / 2f;
+        float halfW = camera.viewportWidth  / 2f;
+        float halfH = camera.viewportHeight / 2f;
+        minX = worldMinX + halfW;
+        minY = worldMinY + halfH;
+        maxX = worldMaxX - halfW;
+        maxY = worldMaxY - halfH;
+        if (maxX < minX) maxX = minX;
+        if (maxY < minY) maxY = minY;
         boundsSet = true;
+    }
+
+    public void clearBounds() {
+        boundsSet = false;
     }
 
     public void update(float heroX, float heroY, float dt) {
@@ -32,8 +40,10 @@ public class CameraController {
         camera.update();
     }
 
-    public void snapTo(float x, float y) {
-        camera.position.set(x, y, 0);
+    public void snapTo(float worldX, float worldY) {
+        float x = boundsSet ? MathUtils.clamp(worldX, minX, maxX) : worldX;
+        float y = boundsSet ? MathUtils.clamp(worldY, minY, maxY) : worldY;
+        camera.position.set(x, y, 0f);
         camera.update();
     }
 

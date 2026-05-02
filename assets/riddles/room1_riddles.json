@@ -1,0 +1,17 @@
+{
+  "room": 1,
+  "riddles": [
+    {
+      "id": 0,
+      "type": "text",
+      "question": "60 + 7 = ?",
+      "answer": "67"
+    },
+    {
+      "id": 1,
+      "type": "text",
+      "question": "What has to be broken before you can use it?",
+      "answer": "egg"
+    }
+  ]
+}
