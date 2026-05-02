@@ -152,6 +152,13 @@ public final class RoomManager {
     public Room      getCurrentRoom()   { return currentRoom; }
     public Rectangle getCurrentBounds() { return currentRoom == null ? null : currentRoom.getBounds(); }
 
+    public Rectangle getMapBounds() {
+        if (map == null) return null;
+        float w = mapLoader.getMapWidthTiles()  * (float) tileSize;
+        float h = mapLoader.getMapHeightTiles() * (float) tileSize;
+        return new Rectangle(0, 0, w, h);
+    }
+
     public List<Room> getRooms() {
         return Collections.unmodifiableList(rooms);
     }
