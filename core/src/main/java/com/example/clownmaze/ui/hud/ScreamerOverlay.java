@@ -1,34 +1,67 @@
 package com.example.clownmaze.ui.hud;
 
+import java.util.function.Consumer;
+
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Disposable;
 
-/** Full-screen red flash shown while the clown's screamer is active. */
+import com.example.clownmaze.core.EventBus;
+
+/** Full-screen image overlay for clown (3 s) and spider (0.5 s) screamers. */
 public final class ScreamerOverlay implements Disposable {
 
-    private static final float SCREAMER_DURATION = 3f;
+    private static final float CLOWN_DURATION  = 3f;
+    private static final float SPIDER_DURATION = 0.5f;
 
-    private final ShapeRenderer shapes = new ShapeRenderer();
+    private final Texture     clownTex;
+    private final Texture     spiderTex;
+    private final SpriteBatch batch;
 
-    /** Call every frame; alpha fades from 0.85 → 0 as screamerTimer counts down. */
-    public void render(boolean active, float screamerTimer) {
-        if (!active || screamerTimer <= 0f) return;
+    private EventBus.ScreamerSource activeSource;
+    private float timer;
 
-        float alpha = 0.85f * (screamerTimer / SCREAMER_DURATION);
+    private final Consumer<EventBus.ScreamerStartEvent> onStart;
 
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+    public ScreamerOverlay() {
+        clownTex  = new Texture(Gdx.files.internal("screamer/screamer_clown.png"));
+        spiderTex = new Texture(Gdx.files.internal("screamer/screamer_spider.png"));
+        batch     = new SpriteBatch();
 
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        shapes.setColor(0.7f, 0f, 0f, alpha);
-        shapes.rect(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        shapes.end();
+        onStart = e -> {
+            activeSource = e.source();
+            timer = (e.source() == EventBus.ScreamerSource.CLOWN)
+                    ? CLOWN_DURATION : SPIDER_DURATION;
+        };
+        EventBus.getInstance().subscribe(EventBus.ScreamerStartEvent.class, onStart);
+    }
 
-        Gdx.gl.glDisable(GL20.GL_BLEND);
+    public void update(float dt) {
+        if (timer > 0f) timer = Math.max(0f, timer - dt);
+    }
+
+    public void render() {
+        if (timer <= 0f || activeSource == null) return;
+
+        Texture tex = (activeSource == EventBus.ScreamerSource.CLOWN) ? clownTex : spiderTex;
+        int w = Gdx.graphics.getWidth();
+        int h = Gdx.graphics.getHeight();
+
+        batch.begin();
+        batch.draw(tex, 0, 0, w, h);
+        batch.end();
+    }
+
+    public void resize(int w, int h) {
+        batch.getProjectionMatrix().setToOrtho2D(0, 0, w, h);
     }
 
     @Override
-    public void dispose() { shapes.dispose(); }
+    public void dispose() {
+        EventBus.getInstance().unsubscribe(EventBus.ScreamerStartEvent.class, onStart);
+        clownTex.dispose();
+        spiderTex.dispose();
+        batch.dispose();
+    }
 }

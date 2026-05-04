@@ -67,5 +67,9 @@ public final class EventBus {
 
     public record HeroInteractEvent(float heroX, float heroY) {}
 
+    public record PlayerHurtEvent(int remainingHp) {}
+
+    public record GameOverEvent() {}
+
     public enum ScreamerSource { CLOWN, SPIDER }
 }
