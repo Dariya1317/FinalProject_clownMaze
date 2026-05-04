@@ -11,22 +11,22 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 
-public class WinScreen implements Screen {
+public class GameOverScreen implements Screen {
 
     private final Game        game;
     private final GameScreen  gameScreen;
     private final SpriteBatch batch;
-    private final Texture     winTex;
+    private final Texture     gameOverTex;
     private final BitmapFont  font;
     private final GlyphLayout layout;
 
-    public WinScreen(Game game, GameScreen gameScreen) {
-        this.game       = game;
-        this.gameScreen = gameScreen;
-        this.batch      = new SpriteBatch();
-        this.winTex     = new Texture(Gdx.files.internal("screamer/win_screen.png"));
-        this.font       = new BitmapFont();
-        this.layout     = new GlyphLayout();
+    public GameOverScreen(Game game, GameScreen gameScreen) {
+        this.game        = game;
+        this.gameScreen  = gameScreen;
+        this.batch       = new SpriteBatch();
+        this.gameOverTex = new Texture(Gdx.files.internal("ui/game_over.png"));
+        this.font        = new BitmapFont();
+        this.layout      = new GlyphLayout();
     }
 
     @Override
@@ -37,7 +37,7 @@ public class WinScreen implements Screen {
         int h = Gdx.graphics.getHeight();
 
         batch.begin();
-        batch.draw(winTex, 0, 0, w, h);
+        batch.draw(gameOverTex, 0, 0, w, h);
 
         font.getData().setScale(1.5f);
         font.setColor(Color.WHITE);
@@ -58,14 +58,15 @@ public class WinScreen implements Screen {
     public void resize(int w, int h) {
         batch.getProjectionMatrix().setToOrtho2D(0, 0, w, h);
     }
-    @Override public void pause()              {}
-    @Override public void resume()             {}
-    @Override public void hide()               {}
+
+    @Override public void pause()  {}
+    @Override public void resume() {}
+    @Override public void hide()   {}
 
     @Override
     public void dispose() {
         batch.dispose();
-        winTex.dispose();
+        gameOverTex.dispose();
         font.dispose();
     }
 }

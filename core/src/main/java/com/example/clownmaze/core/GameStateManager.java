@@ -19,8 +19,9 @@ public final class GameStateManager {
 
     public static void resetInstance() { instance = null; }
 
-    public enum Screen { MAIN_MENU, PLAYING, PAUSED, WIN }
+    public enum Screen { MAIN_MENU, PLAYING, PAUSED, WIN, GAME_OVER }
 
+    public static final int MAX_HP    = 3;
     public static final int FIRST_ROOM = 1;
     public static final int LAST_ROOM  = 3;
 
@@ -43,6 +44,7 @@ public final class GameStateManager {
 
     private Screen currentScreen;
     private int    currentRoom;
+    private int    heroHp;
 
     private final Map<Integer, Set<Integer>> solvedRiddles = new HashMap<>();
     private final Map<Integer, Float>        roomTimeLeft  = new HashMap<>();
@@ -50,12 +52,15 @@ public final class GameStateManager {
     private boolean timerExpired;
     private boolean screamerActive;
     private float   screamerTimer;
+    private boolean gameOverPending;
     private float   totalElapsed;
     private int     deathCount;
 
     private void reset() {
-        currentScreen = Screen.MAIN_MENU;
-        currentRoom   = FIRST_ROOM;
+        currentScreen   = Screen.MAIN_MENU;
+        currentRoom     = FIRST_ROOM;
+        heroHp          = MAX_HP;
+        gameOverPending = false;
         solvedRiddles.clear();
         roomTimeLeft.clear();
         for (Map.Entry<Integer, Float> e : ROOM_TIMERS.entrySet()) {
@@ -84,8 +89,14 @@ public final class GameStateManager {
             screamerTimer -= dt;
             if (screamerTimer <= 0f) {
                 screamerActive = false;
-                EventBus.getInstance().publish(
-                    new EventBus.ScreamerEndEvent(EventBus.ScreamerSource.CLOWN));
+                if (gameOverPending) {
+                    gameOverPending = false;
+                    currentScreen   = Screen.GAME_OVER;
+                    EventBus.getInstance().publish(new EventBus.GameOverEvent());
+                } else {
+                    EventBus.getInstance().publish(
+                        new EventBus.ScreamerEndEvent(EventBus.ScreamerSource.CLOWN));
+                }
             }
             return;
         }
@@ -103,6 +114,18 @@ public final class GameStateManager {
                         new EventBus.TimerExpiredEvent(currentRoom));
                 }
             }
+        }
+    }
+
+    /** Reduces room timer by seconds (spider penalty). Fires TimerExpiredEvent if hits 0. */
+    public void reduceTimer(float seconds) {
+        if (timerExpired || currentScreen != Screen.PLAYING || screamerActive) return;
+        float left = roomTimeLeft.getOrDefault(currentRoom, 0f);
+        left = Math.max(0f, left - seconds);
+        roomTimeLeft.put(currentRoom, left);
+        if (left == 0f) {
+            timerExpired = true;
+            EventBus.getInstance().publish(new EventBus.TimerExpiredEvent(currentRoom));
         }
     }
 
@@ -139,9 +162,17 @@ public final class GameStateManager {
         screamerActive = true;
         screamerTimer  = 3f;
         deathCount++;
+        heroHp--;
+        if (heroHp <= 0) {
+            heroHp          = 0;
+            gameOverPending = true;
+        }
         EventBus.getInstance().publish(new EventBus.HeroCaughtEvent());
         EventBus.getInstance().publish(
             new EventBus.ScreamerStartEvent(EventBus.ScreamerSource.CLOWN));
+        if (heroHp > 0) {
+            EventBus.getInstance().publish(new EventBus.PlayerHurtEvent(heroHp));
+        }
     }
 
     public void resetCurrentRoom() {
@@ -156,8 +187,18 @@ public final class GameStateManager {
         EventBus.getInstance().publish(new EventBus.GameWinEvent());
     }
 
+    /** True when timer < 10 s and game is running — used for heartbeat effect. */
+    public boolean isHeartbeatActive() {
+        return currentScreen == Screen.PLAYING
+            && !screamerActive
+            && !timerExpired
+            && roomTimeLeft.getOrDefault(currentRoom, 0f) <= 10f
+            && roomTimeLeft.getOrDefault(currentRoom, 0f) > 0f;
+    }
+
     public Screen  getScreen()              { return currentScreen; }
     public int     getCurrentRoom()         { return currentRoom; }
+    public int     getHeroHp()             { return heroHp; }
     public int     getDeathCount()          { return deathCount; }
     public float   getTotalElapsed()        { return totalElapsed; }
     public float   getRoomTimeLeft(int id)  { return roomTimeLeft.getOrDefault(id, 0f); }
