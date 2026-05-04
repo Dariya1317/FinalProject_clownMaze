@@ -14,8 +14,11 @@ import com.badlogic.gdx.utils.ScreenUtils;
 
 import com.example.clownmaze.core.EventBus;
 import com.example.clownmaze.core.GameStateManager;
+import com.example.clownmaze.core.entity.Ghost;
+import com.example.clownmaze.core.entity.GhostAppearance;
 import com.example.clownmaze.core.entity.Hero;
 import com.example.clownmaze.core.entity.PlayerInputHandler;
+import com.example.clownmaze.core.entity.Spider;
 import com.example.clownmaze.core.entity.ai.ClownAI;
 import com.example.clownmaze.core.riddles.BaseRiddle;
 import com.example.clownmaze.core.riddles.RiddleFactory;
@@ -29,6 +32,7 @@ import com.example.clownmaze.world.map.MapLoader;
 import com.example.clownmaze.world.map.RoomDescriptor;
 import com.example.clownmaze.world.map.RoomManager;
 import com.example.clownmaze.world.map.TileFactory;
+import com.example.clownmaze.audio.AudioManager;
 
 public class GameScreen implements Screen {
 
@@ -49,15 +53,21 @@ public class GameScreen implements Screen {
     private final EntityRenderer entities;
 
     // HUD
-    private final RiddleOverlay  riddleOverlay;
-    private final TimerWidget    timerWidget;
+    private final RiddleOverlay   riddleOverlay;
+    private final TimerWidget     timerWidget;
     private final ScreamerOverlay screamer;
+    private final AudioManager    audio;
+
+    // Ambient entities visible across all rooms
+    private final List<Ghost>  ghosts;
+    private final List<Spider> spiders;
 
     // Riddles for the current room
     private List<BaseRiddle> riddles = new ArrayList<>();
 
     private boolean snapCameraNextFrame;
     private boolean winHandled;
+    private boolean gameOverHandled;
 
     private final Consumer<EventBus.RoomEnterEvent> onRoomEnter = e -> {
         snapCameraNextFrame = true;
@@ -91,10 +101,13 @@ public class GameScreen implements Screen {
 
         input         = new PlayerInputHandler(hero);
         entities      = new EntityRenderer();
+        ghosts        = buildGhosts();
+        spiders       = buildSpiders();
         riddleOverlay = new RiddleOverlay();
         timerWidget   = new TimerWidget();
         screamer      = new ScreamerOverlay();
         pauseScreen   = new PauseScreen(game, this);
+        audio         = AudioManager.getInstance();
 
         EventBus bus = EventBus.getInstance();
         bus.subscribe(EventBus.RoomEnterEvent.class, onRoomEnter);
@@ -108,7 +121,8 @@ public class GameScreen implements Screen {
         if (gsm.getScreen() == GameStateManager.Screen.PAUSED) {
             gsm.resume();
         } else {
-            winHandled = false;
+            winHandled      = false;
+            gameOverHandled = false;
             gsm.startGame();   // → fires RoomEnterEvent(1) → onRoomEnter loads riddles
             tryLoadRoom(1);
         }
@@ -134,6 +148,13 @@ public class GameScreen implements Screen {
             return;
         }
 
+        // Game Over → GameOverScreen (once)
+        if (!gameOverHandled && gsm.getScreen() == GameStateManager.Screen.GAME_OVER) {
+            gameOverHandled = true;
+            game.setScreen(new GameOverScreen(game, this));
+            return;
+        }
+
         // E → open riddle overlay
         if (!riddleOverlay.isOpen()
                 && !gsm.isScreamerActive()
@@ -145,6 +166,7 @@ public class GameScreen implements Screen {
 
         // Game logic update
         gsm.update(dt);
+        audio.updateHeartbeat(gsm.isHeartbeatActive());
 
         // Hero movement — frozen while riddle overlay or screamer is shown
         if (gsm.getScreen() == GameStateManager.Screen.PLAYING
@@ -155,6 +177,8 @@ public class GameScreen implements Screen {
 
         hero.update(dt);
         clown.update(dt);
+        for (Ghost  g : ghosts)  g.update(dt);
+        for (Spider s : spiders) s.update(dt, hero.getX(), hero.getY());
 
         // Clown-hero collision
         if (gsm.getScreen() == GameStateManager.Screen.PLAYING
@@ -179,6 +203,8 @@ public class GameScreen implements Screen {
         batch.setProjectionMatrix(camera.getCamera().combined);
         batch.begin();
         roomManager.render(batch);
+        for (Spider s : spiders) entities.renderSpider(batch, s);
+        for (Ghost  g : ghosts)  entities.renderGhost(batch, g);
         entities.renderClown(batch, clown);
         entities.renderHero(batch, hero);
         batch.end();
@@ -192,7 +218,8 @@ public class GameScreen implements Screen {
         riddleOverlay.update(dt);
         riddleOverlay.render();
 
-        screamer.render(gsm.isScreamerActive(), gsm.getScreamerTimer());
+        screamer.update(dt);
+        screamer.render();
     }
 
     @Override
@@ -201,6 +228,7 @@ public class GameScreen implements Screen {
         lighting.resize(width, height);
         riddleOverlay.resize(width, height);
         timerWidget.resize(width, height);
+        screamer.resize(width, height);
     }
 
     @Override public void pause()  {}
@@ -222,6 +250,8 @@ public class GameScreen implements Screen {
         timerWidget.dispose();
         screamer.dispose();
         pauseScreen.dispose();
+        for (Spider s : spiders) s.dispose();
+        audio.dispose();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -262,6 +292,27 @@ public class GameScreen implements Screen {
             if (!r.isSolved()) return r;
         }
         return null;
+    }
+
+    private List<Ghost> buildGhosts() {
+        GhostAppearance look = GhostAppearance.shared("ghost", 32, 32, 0.75f);
+        // Room 1 (x 0-304, y 272-480)
+        Ghost g1 = new Ghost(look); g1.placeAt( 80, 360); g1.setRoamBounds( 16, 288, 272, 464);
+        // Room 2 (x 336-640, y 272-480)
+        Ghost g2 = new Ghost(look); g2.placeAt(400, 360); g2.setRoamBounds(352, 288, 608, 464);
+        // Room 3 (x 0-640, y 0-240)
+        Ghost g3 = new Ghost(look); g3.placeAt(100, 100); g3.setRoamBounds( 16,  16, 608, 224);
+        Ghost g4 = new Ghost(look); g4.placeAt(480, 150); g4.setRoamBounds( 16,  16, 608, 224);
+        return List.of(g1, g2, g3, g4);
+    }
+
+    private List<Spider> buildSpiders() {
+        return List.of(
+            new Spider(150, 300),   // Room 1
+            new Spider(500, 300),   // Room 2
+            new Spider(200,  50),   // Room 3
+            new Spider(420,  50)    // Room 3
+        );
     }
 
     private void checkClownCollision() {

@@ -12,13 +12,11 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Disposable;
 
+import com.example.clownmaze.core.entity.Ghost;
 import com.example.clownmaze.core.entity.Hero;
+import com.example.clownmaze.core.entity.Spider;
 import com.example.clownmaze.core.entity.ai.ClownAI;
 
-/**
- * Loads sprite animations and draws Hero and ClownAI each frame.
- * Animation selection is based on input state (hero) and AI state (clown).
- */
 public final class EntityRenderer implements Disposable {
 
     // Hero animation speeds (seconds per frame)
@@ -35,6 +33,9 @@ public final class EntityRenderer implements Disposable {
     private final Animation<TextureRegion> clownIdle;
     private final Animation<TextureRegion> clownWalk;
 
+    private final Texture ghostTex;
+    private final Texture spiderTex;
+
     // All loaded textures — disposed together
     private final List<Texture> textures = new ArrayList<>();
 
@@ -47,6 +48,8 @@ public final class EntityRenderer implements Disposable {
         heroRun   = load("sprites/hero/hero_run/run_",      8,  FPS_RUN);
         clownIdle = load("sprites/clown/clown_idle/idle_",  2,  FPS_CLOWN_IDLE);
         clownWalk = load("sprites/clown/clown_walk/walk_",  14, FPS_CLOWN_WALK);
+        ghostTex  = loadSingle("sprites/ghost/ghost_sprite.png");
+        spiderTex = loadSingle("sprites/spider/spider_sprite.png");
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
@@ -113,10 +116,29 @@ public final class EntityRenderer implements Disposable {
             || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
     }
 
-    /**
-     * Loads {@code count} frames from {@code prefix + "01.png"} … {@code "NN.png"}.
-     * All textures are registered for disposal.
-     */
+    public void renderGhost(SpriteBatch batch, Ghost ghost) {
+        float alpha = ghost.getAppearance().getAlpha();
+        batch.setColor(1f, 1f, 1f, alpha);
+        batch.draw(ghostTex,
+            ghost.getX(), ghost.getY(),
+            ghost.getAppearance().getWidth(), ghost.getAppearance().getHeight());
+        batch.setColor(Color.WHITE);
+    }
+
+    public void renderSpider(SpriteBatch batch, Spider spider) {
+        if (spider.isTriggered()) {
+            batch.setColor(1f, 0.4f, 0.4f, 0.5f);
+        }
+        batch.draw(spiderTex, spider.getX(), spider.getY(), 24, 24);
+        batch.setColor(Color.WHITE);
+    }
+
+    private Texture loadSingle(String path) {
+        Texture tex = new Texture(Gdx.files.internal(path));
+        textures.add(tex);
+        return tex;
+    }
+
     private Animation<TextureRegion> load(String prefix, int count, float frameDuration) {
         TextureRegion[] frames = new TextureRegion[count];
         for (int i = 0; i < count; i++) {

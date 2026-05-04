@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -16,35 +17,43 @@ public class MainMenuScreen implements Screen {
     private final SpriteBatch batch;
     private final BitmapFont  font;
     private final GlyphLayout layout;
+    private final Texture     bgTex;
+    private final Texture     logoTex;
 
     public MainMenuScreen(Game game) {
-        this.game   = game;
-        this.batch  = new SpriteBatch();
-        this.font   = new BitmapFont();
-        this.layout = new GlyphLayout();
+        this.game    = game;
+        this.batch   = new SpriteBatch();
+        this.font    = new BitmapFont();
+        this.layout  = new GlyphLayout();
+        this.bgTex   = new Texture(Gdx.files.internal("ui/main_menu_bg.png"));
+        this.logoTex = new Texture(Gdx.files.internal("ui/logo_title.png"));
     }
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.05f, 0.02f, 0.02f, 1f);
+        ScreenUtils.clear(0f, 0f, 0f, 1f);
 
-        float w = Gdx.graphics.getWidth();
-        float h = Gdx.graphics.getHeight();
+        int w = Gdx.graphics.getWidth();
+        int h = Gdx.graphics.getHeight();
 
         batch.begin();
 
-        font.getData().setScale(3f);
-        font.setColor(Color.RED);
-        layout.setText(font, "CLOWN MAZE");
-        font.draw(batch, layout, (w - layout.width) / 2f, h * 0.65f);
+        // background
+        batch.draw(bgTex, 0, 0, w, h);
 
+        // logo — centred, occupies top 35% of screen
+        float logoH = h * 0.35f;
+        float logoW = logoH * ((float) logoTex.getWidth() / logoTex.getHeight());
+        batch.draw(logoTex, (w - logoW) / 2f, h * 0.55f, logoW, logoH);
+
+        // instructions
         font.getData().setScale(1.5f);
         font.setColor(Color.LIGHT_GRAY);
         layout.setText(font, "PRESS ENTER TO START");
-        font.draw(batch, layout, (w - layout.width) / 2f, h * 0.40f);
+        font.draw(batch, layout, (w - layout.width) / 2f, h * 0.38f);
 
         layout.setText(font, "PRESS ESC TO QUIT");
-        font.draw(batch, layout, (w - layout.width) / 2f, h * 0.30f);
+        font.draw(batch, layout, (w - layout.width) / 2f, h * 0.28f);
 
         batch.end();
 
@@ -56,15 +65,22 @@ public class MainMenuScreen implements Screen {
         }
     }
 
-    @Override public void show()               {}
-    @Override public void resize(int w, int h) {}
-    @Override public void pause()              {}
-    @Override public void resume()             {}
-    @Override public void hide()               {}
+    @Override public void show() {}
+
+    @Override
+    public void resize(int w, int h) {
+        batch.getProjectionMatrix().setToOrtho2D(0, 0, w, h);
+    }
+
+    @Override public void pause()  {}
+    @Override public void resume() {}
+    @Override public void hide()   {}
 
     @Override
     public void dispose() {
         batch.dispose();
         font.dispose();
+        bgTex.dispose();
+        logoTex.dispose();
     }
 }

@@ -5,6 +5,10 @@ import com.badlogic.gdx.math.MathUtils;
 
 public final class CameraController {
 
+    /** Virtual resolution the game was designed for. GL stretches this to the OS window. */
+    public static final float VIRTUAL_W = 640f;
+    public static final float VIRTUAL_H = 480f;
+
     private static final float LERP = 5f;
 
     private final OrthographicCamera camera;
@@ -13,7 +17,7 @@ public final class CameraController {
 
     public CameraController(float viewportW, float viewportH) {
         camera = new OrthographicCamera();
-        camera.setToOrtho(false, viewportW, viewportH);
+        camera.setToOrtho(false, VIRTUAL_W, VIRTUAL_H);
     }
 
     public void setBounds(float worldMinX, float worldMinY, float worldMaxX, float worldMaxY) {
@@ -48,7 +52,7 @@ public final class CameraController {
     }
 
     public void resize(float viewportW, float viewportH) {
-        camera.setToOrtho(false, viewportW, viewportH);
+        // Virtual resolution stays fixed; the GL viewport (set by the backend) stretches it.
         camera.update();
     }
 

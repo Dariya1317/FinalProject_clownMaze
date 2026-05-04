@@ -48,7 +48,7 @@ public final class RoomManager {
         this.mapLoader   = mapLoader;
 
         onRoomComplete = e -> handleRoomComplete(e.roomId());
-        onScreamerEnd  = e -> handleScreamerEnd();
+        onScreamerEnd  = e -> { if (e.source() == EventBus.ScreamerSource.CLOWN) handleScreamerEnd(); };
 
         EventBus bus = EventBus.getInstance();
         bus.subscribe(EventBus.RoomCompleteEvent.class, onRoomComplete);
