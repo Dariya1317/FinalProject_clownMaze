@@ -2,6 +2,8 @@ package com.example.clownmaze.core.entity;
 
 import java.util.Random;
 
+import com.badlogic.gdx.math.Rectangle;
+
 public final class Ghost implements Cloneable {
 
     private static final float SPEED          = 18f;
@@ -13,8 +15,11 @@ public final class Ghost implements Cloneable {
 
     private float x, y;
     private float roamMinX, roamMinY, roamMaxX, roamMaxY;
-    private float dirX, dirY;
-    private float dirTimer;
+    private float     dirX, dirY;
+    private float     dirTimer;
+    private boolean   active        = true;
+    private float     inactiveTimer = 0f;
+    private final Rectangle collisionRect = new Rectangle();
 
     public Ghost(GhostAppearance appearance) {
         this(appearance, new Random());
@@ -39,6 +44,11 @@ public final class Ghost implements Cloneable {
     }
 
     public void update(float delta) {
+        if (!active) {
+            inactiveTimer -= delta;
+            if (inactiveTimer <= 0f) active = true;
+            return;
+        }
         dirTimer -= delta;
         if (dirTimer <= 0f) pickDirection();
 
@@ -53,6 +63,27 @@ public final class Ghost implements Cloneable {
             if (y < roamMinY) { y = roamMinY; dirY = -dirY; }
             if (y > roamMaxY) { y = roamMaxY; dirY = -dirY; }
         }
+    }
+
+    /** Deactivates the ghost for {@code duration} seconds and teleports it within roam bounds. */
+    public void deactivate(float duration) {
+        active        = false;
+        inactiveTimer = duration;
+        if (roamMaxX > roamMinX) x = roamMinX + rng.nextFloat() * (roamMaxX - roamMinX);
+        if (roamMaxY > roamMinY) y = roamMinY + rng.nextFloat() * (roamMaxY - roamMinY);
+    }
+
+    public void reset() {
+        active        = true;
+        inactiveTimer = 0f;
+    }
+
+    public boolean isActive() { return active; }
+
+    /** Returns the ghost's axis-aligned bounding box (reuses a cached instance). */
+    public Rectangle getCollisionRect() {
+        collisionRect.set(x, y, appearance.getWidth(), appearance.getHeight());
+        return collisionRect;
     }
 
     private void pickDirection() {

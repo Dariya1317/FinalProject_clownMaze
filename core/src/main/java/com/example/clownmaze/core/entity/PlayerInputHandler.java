@@ -18,6 +18,7 @@ public final class PlayerInputHandler implements IInputHandler {
     }
 
     private void handleMovement(float delta) {
+        if (hero.isFrozen()) return;
         float dx = 0f, dy = 0f;
 
         if (Gdx.input.isKeyPressed(Keys.W) || Gdx.input.isKeyPressed(Keys.UP))    dy += 1f;

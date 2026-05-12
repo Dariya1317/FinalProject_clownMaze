@@ -25,6 +25,7 @@ public final class Hero {
 
     private SpeedProvider   currentSpeed = baseSpeed;
     private SlowedDecorator slowed;
+    private float           freezeTimer  = 0f;
 
     private Rectangle bounds;
 
@@ -45,15 +46,31 @@ public final class Hero {
     }
 
     public void update(float delta) {
+        // Freeze countdown (takes priority over slow)
+        if (freezeTimer > 0f) {
+            freezeTimer -= delta;
+            if (freezeTimer <= 0f) {
+                freezeTimer = 0f;
+                // Restore to SLOWED if slow is still active, otherwise NORMAL
+                state = (slowed != null) ? HeroState.SLOWED : HeroState.NORMAL;
+            }
+        }
         if (slowed != null) {
             slowed.tick(delta);
             if (slowed.isExpired()) {
                 currentSpeed = slowed.unwrap();
                 slowed = null;
-                state = HeroState.NORMAL;
+                if (state != HeroState.FROZEN) state = HeroState.NORMAL;
             }
         }
     }
+
+    public void freeze(float duration) {
+        freezeTimer = duration;
+        state = HeroState.FROZEN;
+    }
+
+    public boolean isFrozen() { return state == HeroState.FROZEN; }
 
     public void attemptMove(float dx, float dy) {
         x += dx;

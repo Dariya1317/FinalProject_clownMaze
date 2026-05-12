@@ -131,15 +131,24 @@ public final class RoomManager {
     }
 
     private void handleRoomComplete(int completedRoomId) {
+        GameStateManager gsm = GameStateManager.getInstance();
+
         if (completedRoomId == GameStateManager.LAST_ROOM) {
-            GameStateManager.getInstance().triggerWin();
+            if (gsm.getCurrentLevel() < GameStateManager.LAST_LEVEL) {
+                // Advance to next level, start from room 1
+                gsm.advanceToLevel(gsm.getCurrentLevel() + 1);
+                loadRoom(GameStateManager.FIRST_ROOM);
+            } else {
+                // All levels complete → victory
+                gsm.triggerWin();
+            }
             return;
         }
 
         int next = completedRoomId + 1;
         if (!descriptors.containsKey(next)) return;
 
-        GameStateManager.getInstance().advanceToRoom(next);
+        gsm.advanceToRoom(next);
         loadRoom(next);
     }
 
