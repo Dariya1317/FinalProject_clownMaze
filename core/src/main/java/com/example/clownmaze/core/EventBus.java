@@ -71,5 +71,9 @@ public final class EventBus {
 
     public record GameOverEvent() {}
 
+    public record LevelEnterEvent(int level) {}
+
+    public record FreezeEvent(float duration) {}
+
     public enum ScreamerSource { CLOWN, SPIDER }
 }

@@ -8,8 +8,12 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.ScreenUtils;
 
 import com.example.clownmaze.core.EventBus;
@@ -25,18 +29,30 @@ import com.example.clownmaze.core.riddles.RiddleFactory;
 import com.example.clownmaze.render.CameraController;
 import com.example.clownmaze.render.EntityRenderer;
 import com.example.clownmaze.render.LightingSystem;
+import com.example.clownmaze.ui.hud.MiniGameOverlay;
 import com.example.clownmaze.ui.hud.RiddleOverlay;
 import com.example.clownmaze.ui.hud.ScreamerOverlay;
 import com.example.clownmaze.ui.hud.TimerWidget;
+import com.example.clownmaze.ui.hud.VignetteEffect;
 import com.example.clownmaze.world.map.MapLoader;
 import com.example.clownmaze.world.map.RoomDescriptor;
 import com.example.clownmaze.world.map.RoomManager;
 import com.example.clownmaze.world.map.TileFactory;
 import com.example.clownmaze.audio.AudioManager;
+import com.example.clownmaze.core.interact.FakeEffect;
+import com.example.clownmaze.core.interact.InteractableObject;
+import com.example.clownmaze.world.map.LevelManager;
 
 public class GameScreen implements Screen {
 
-    private static final float CATCH_RADIUS = 20f;
+    private static final float CATCH_RADIUS   = 20f;
+    private static final float HOLD_DURATION  = 3f;
+    private static final int   COLLECT_TOTAL  = 3;
+
+    // Spawn positions for Level-3 collect items (room 2 bounds x:352-608, y:288-464)
+    private static final float[][] COLLECT_SPAWN = {
+        {420f, 360f}, {540f, 420f}, {490f, 310f}
+    };
 
     private final Game               game;
     private final SpriteBatch        batch;
@@ -49,32 +65,85 @@ public class GameScreen implements Screen {
     private final RoomManager        roomManager;
     private final PauseScreen        pauseScreen;
 
-    // Sprite rendering
     private final EntityRenderer entities;
 
     // HUD
     private final RiddleOverlay   riddleOverlay;
+    private final MiniGameOverlay miniGameOverlay;
     private final TimerWidget     timerWidget;
     private final ScreamerOverlay screamer;
     private final AudioManager    audio;
 
-    // Ambient entities visible across all rooms
-    private final List<Ghost>  ghosts;
-    private final List<Spider> spiders;
+    private final List<Ghost>       ghosts;
+    private final ArrayList<Spider> spiders;
+    private final int               initialSpiderCount;
 
-    // Riddles for the current room
-    private List<BaseRiddle> riddles = new ArrayList<>();
+    private List<BaseRiddle>         riddles = new ArrayList<>();
+    private List<InteractableObject> objects = new ArrayList<>();
+
+    // Level-3 task state
+    private float  holdTimer        = 0f;
+    private int    sequenceProgress = 0;
+    private int    collectedCount   = 0;
+    private float  seqHintTimer     = 0f;
+    private String seqHintMsg       = "";
+
+    // Object rendering
+    private final Texture    objMarkerTex;
+    private final BitmapFont objHintFont;
+    private final SpriteBatch hudBatch;
+    private final Texture     taskTex;
+    private final Texture     holdTaskTex;
+    private final Texture     collectItemTex;
+    private final Texture     runeATex;
+    private final Texture     runeBTex;
+    private final Texture     runeCTex;
+    private final Vector3     projVec = new Vector3();
 
     private boolean snapCameraNextFrame;
     private boolean winHandled;
     private boolean gameOverHandled;
 
+    // ── Ghost interaction state ───────────────────────────────────────────────
+    private static final float       GHOST_DMG_FLASH   = 0.3f;
+    private final  VignetteEffect     vignetteEffect    = new VignetteEffect();
+    private final  Rectangle          heroHitbox        = new Rectangle();
+    private        boolean            vignetteActive;
+    private        float              ghostHitCooldown;
+    private        float              ghostDmgFlashTimer;
+    private final  Consumer<EventBus.FreezeEvent> onFreeze;
+
+    private final Consumer<EventBus.LevelEnterEvent> onLevelEnter;
+
     private final Consumer<EventBus.RoomEnterEvent> onRoomEnter = e -> {
         snapCameraNextFrame = true;
         loadRiddles(e.roomId());
+        objects          = LevelManager.get(GameStateManager.getInstance().getCurrentLevel(), e.roomId());
+        holdTimer        = 0f;
+        collectedCount   = 0;
+        sequenceProgress = 0;
+        if (GameStateManager.getInstance().getCurrentLevel() == 3 && e.roomId() == 3) {
+            seqHintTimer = 4f;
+            seqHintMsg   = "Activate runes in order:  A > B > C";
+        } else {
+            seqHintTimer = 0f;
+            seqHintMsg   = "";
+        }
     };
-    private final Consumer<EventBus.RoomResetEvent> onRoomReset =
-        e -> resetRiddles();
+    private final Consumer<EventBus.RoomResetEvent> onRoomReset = e -> {
+        resetRiddles();
+        objects          = LevelManager.get(GameStateManager.getInstance().getCurrentLevel(), e.roomId());
+        holdTimer        = 0f;
+        collectedCount   = 0;
+        sequenceProgress = 0;
+        if (GameStateManager.getInstance().getCurrentLevel() == 3 && e.roomId() == 3) {
+            seqHintTimer = 4f;
+            seqHintMsg   = "Activate runes in order:  A > B > C";
+        } else {
+            seqHintTimer = 0f;
+            seqHintMsg   = "";
+        }
+    };
 
     public GameScreen(Game game) {
         this.game = game;
@@ -99,19 +168,51 @@ public class GameScreen implements Screen {
         roomManager.registerRoom(new RoomDescriptor(2, "maps/maze.tmx", 480f, 360f, 368f, 288f));
         roomManager.registerRoom(new RoomDescriptor(3, "maps/maze.tmx", 320f, 120f,  32f,  32f));
 
-        input         = new PlayerInputHandler(hero);
-        entities      = new EntityRenderer();
-        ghosts        = buildGhosts();
-        spiders       = buildSpiders();
-        riddleOverlay = new RiddleOverlay();
-        timerWidget   = new TimerWidget();
-        screamer      = new ScreamerOverlay();
-        pauseScreen   = new PauseScreen(game, this);
-        audio         = AudioManager.getInstance();
+        input           = new PlayerInputHandler(hero);
+        entities        = new EntityRenderer();
+        ghosts          = buildGhosts();
+        spiders         = buildSpiders();
+        initialSpiderCount = spiders.size();
+        riddleOverlay   = new RiddleOverlay();
+        miniGameOverlay = new MiniGameOverlay();
+        timerWidget     = new TimerWidget();
+        screamer        = new ScreamerOverlay();
+        pauseScreen     = new PauseScreen(game, this);
+        audio           = AudioManager.getInstance();
+
+        Pixmap pm = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pm.setColor(1f, 1f, 1f, 1f);
+        pm.fill();
+        objMarkerTex = new Texture(pm);
+        pm.dispose();
+
+        objHintFont = new BitmapFont();
+        objHintFont.getData().setScale(1.1f);
+
+        hudBatch = new SpriteBatch();
+        hudBatch.getProjectionMatrix().setToOrtho2D(0, 0, w, h);
+
+        taskTex        = new Texture(Gdx.files.internal("sprites/object/task.png"));
+        holdTaskTex    = new Texture(Gdx.files.internal("sprites/object/object_l3_t1.png"));
+        collectItemTex = new Texture(Gdx.files.internal("sprites/object/object_l3_t2.png"));
+        runeATex       = new Texture(Gdx.files.internal("sprites/object/rune_a.png"));
+        runeBTex       = new Texture(Gdx.files.internal("sprites/object/rune_b.png"));
+        runeCTex       = new Texture(Gdx.files.internal("sprites/object/rune_c.png"));
+
+        onLevelEnter = e -> {
+            gsm.pause();
+            ghosts.forEach(Ghost::reset);
+            vignetteActive = false;
+            game.setScreen(new LevelIntroScreen(game, "ui/level" + e.level() + ".png", this));
+        };
+
+        onFreeze = e -> hero.freeze(e.duration());
 
         EventBus bus = EventBus.getInstance();
-        bus.subscribe(EventBus.RoomEnterEvent.class, onRoomEnter);
-        bus.subscribe(EventBus.RoomResetEvent.class, onRoomReset);
+        bus.subscribe(EventBus.LevelEnterEvent.class, onLevelEnter);
+        bus.subscribe(EventBus.FreezeEvent.class,     onFreeze);
+        bus.subscribe(EventBus.RoomEnterEvent.class,  onRoomEnter);
+        bus.subscribe(EventBus.RoomResetEvent.class,  onRoomReset);
     }
 
     // ── Screen lifecycle ──────────────────────────────────────────────────────
@@ -123,7 +224,7 @@ public class GameScreen implements Screen {
         } else {
             winHandled      = false;
             gameOverHandled = false;
-            gsm.startGame();   // → fires RoomEnterEvent(1) → onRoomEnter loads riddles
+            gsm.startGame();
             tryLoadRoom(1);
         }
     }
@@ -132,8 +233,10 @@ public class GameScreen implements Screen {
     public void render(float delta) {
         float dt = Math.min(delta, 0.05f);
 
-        // ESC → pause (only when no overlay is open)
-        if (!riddleOverlay.isOpen()
+        boolean anyOverlayOpen = riddleOverlay.isOpen() || miniGameOverlay.isOpen();
+
+        // ESC → pause
+        if (!anyOverlayOpen
                 && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)
                 && gsm.getScreen() == GameStateManager.Screen.PLAYING) {
             gsm.pause();
@@ -141,37 +244,56 @@ public class GameScreen implements Screen {
             return;
         }
 
-        // Win → WinScreen (once)
+        // Win → WinScreen
         if (!winHandled && gsm.getScreen() == GameStateManager.Screen.WIN) {
             winHandled = true;
             game.setScreen(new WinScreen(game, this));
             return;
         }
 
-        // Game Over → GameOverScreen (once)
+        // Game Over → GameOverScreen
         if (!gameOverHandled && gsm.getScreen() == GameStateManager.Screen.GAME_OVER) {
             gameOverHandled = true;
             game.setScreen(new GameOverScreen(game, this));
             return;
         }
 
-        // E → open riddle overlay
-        if (!riddleOverlay.isOpen()
-                && !gsm.isScreamerActive()
-                && gsm.getScreen() == GameStateManager.Screen.PLAYING
-                && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
-            BaseRiddle active = getActiveRiddle();
-            if (active != null) riddleOverlay.show(active);
+        // Nearest interactive object this frame
+        InteractableObject nearbyObj = getNearbyObject();
+
+        boolean playing = gsm.getScreen() == GameStateManager.Screen.PLAYING
+                          && !gsm.isScreamerActive();
+
+        // ── Level-3 HOLD task: continuous E press ─────────────────────────────
+        boolean holdingNow = !anyOverlayOpen && playing
+                && nearbyObj != null
+                && nearbyObj.getKind() == InteractableObject.Kind.HOLD
+                && Gdx.input.isKeyPressed(Input.Keys.E);
+        if (holdingNow) {
+            holdTimer += dt;
+            if (holdTimer >= HOLD_DURATION) {
+                holdTimer = 0f;
+                nearbyObj.markUsed();
+                gsm.markRiddleSolved(gsm.getCurrentRoom(), nearbyObj.getPayload());
+            }
+        } else {
+            holdTimer = 0f;
         }
 
-        // Game logic update
+        // ── One-shot E for everything except HOLD and COLLECT ─────────────────
+        if (!anyOverlayOpen && playing
+                && Gdx.input.isKeyJustPressed(Input.Keys.E)
+                && nearbyObj != null
+                && nearbyObj.getKind() != InteractableObject.Kind.HOLD) {
+            handleInteract(nearbyObj);
+        }
+
+        // Game logic
         gsm.update(dt);
         audio.updateHeartbeat(gsm.isHeartbeatActive());
 
-        // Hero movement — frozen while riddle overlay or screamer is shown
-        if (gsm.getScreen() == GameStateManager.Screen.PLAYING
-                && !gsm.isScreamerActive()
-                && !riddleOverlay.isOpen()) {
+        // Hero movement — frozen while overlay or screamer
+        if (playing && !anyOverlayOpen) {
             input.handleInput(dt);
         }
 
@@ -180,12 +302,20 @@ public class GameScreen implements Screen {
         for (Ghost  g : ghosts)  g.update(dt);
         for (Spider s : spiders) s.update(dt, hero.getX(), hero.getY());
 
-        // Clown-hero collision
-        if (gsm.getScreen() == GameStateManager.Screen.PLAYING
-                && !gsm.isScreamerActive()
-                && clown.isChasing()) {
-            checkClownCollision();
+        // Ghost–hero interactions (level-specific behaviour)
+        vignetteActive     = false;
+        ghostHitCooldown   = Math.max(0f, ghostHitCooldown   - dt);
+        ghostDmgFlashTimer = Math.max(0f, ghostDmgFlashTimer - dt);
+        if (playing) checkGhostInteractions();
+
+        // Level-3: auto-collect items + hint countdown
+        if (gsm.getCurrentLevel() == 3 && playing) {
+            checkAutoCollect();
+            if (seqHintTimer > 0f) seqHintTimer = Math.max(0f, seqHintTimer - dt);
         }
+
+        // Clown-hero collision
+        if (playing && clown.isChasing()) checkClownCollision();
 
         // Camera
         if (snapCameraNextFrame) {
@@ -203,6 +333,10 @@ public class GameScreen implements Screen {
         batch.setProjectionMatrix(camera.getCamera().combined);
         batch.begin();
         roomManager.render(batch);
+        for (InteractableObject o : objects) {
+            if (isScrollVisible(o))
+                batch.draw(textureFor(o), o.getX() - 12f, o.getY() - 12f, 24f, 24f);
+        }
         for (Spider s : spiders) entities.renderSpider(batch, s);
         for (Ghost  g : ghosts)  entities.renderGhost(batch, g);
         entities.renderClown(batch, clown);
@@ -211,12 +345,58 @@ public class GameScreen implements Screen {
 
         lighting.render(hero.getX(), hero.getY(), camera.getCamera());
 
-        // HUD — drawn in screen coords (ScreenViewport)
+        // Level 1 vignette (screen-space, after lighting)
+        if (vignetteActive) {
+            vignetteEffect.render(
+                Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        }
+
+        // Level 3 damage flash
+        if (ghostDmgFlashTimer > 0f) {
+            float alpha = (ghostDmgFlashTimer / GHOST_DMG_FLASH) * 0.40f;
+            hudBatch.begin();
+            hudBatch.setColor(1f, 0f, 0f, alpha);
+            hudBatch.draw(objMarkerTex, 0f, 0f,
+                Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            hudBatch.setColor(1f, 1f, 1f, 1f);
+            hudBatch.end();
+        }
+
+        // HUD
         timerWidget.update();
         timerWidget.render();
 
+        // Object hint / hold progress
+        if (nearbyObj != null && !anyOverlayOpen) {
+            String hint;
+            if (nearbyObj.getKind() == InteractableObject.Kind.HOLD) {
+                hint = holdTimer > 0f
+                    ? "[E] " + (int)(holdTimer / HOLD_DURATION * 100f) + "%"
+                    : "[E] Hold E...";
+            } else {
+                hint = hintTextFor(nearbyObj);
+            }
+            projVec.set(nearbyObj.getX(), nearbyObj.getY() + 22f, 0f);
+            camera.getCamera().project(projVec);
+            hudBatch.begin();
+            objHintFont.draw(hudBatch, hint, projVec.x - 30f, projVec.y);
+            hudBatch.end();
+        }
+
+        // Rune feedback / order hint (Level 3, Room 3)
+        if (seqHintTimer > 0f && !seqHintMsg.isEmpty()) {
+            int sw = Gdx.graphics.getWidth();
+            int sh = Gdx.graphics.getHeight();
+            hudBatch.begin();
+            objHintFont.draw(hudBatch, seqHintMsg, sw / 2f - 115f, sh * 0.68f);
+            hudBatch.end();
+        }
+
         riddleOverlay.update(dt);
         riddleOverlay.render();
+
+        miniGameOverlay.update(dt);
+        miniGameOverlay.render();
 
         screamer.update(dt);
         screamer.render();
@@ -227,6 +407,7 @@ public class GameScreen implements Screen {
         camera.resize(width, height);
         lighting.resize(width, height);
         riddleOverlay.resize(width, height);
+        miniGameOverlay.resize(width, height);
         timerWidget.resize(width, height);
         screamer.resize(width, height);
     }
@@ -238,8 +419,10 @@ public class GameScreen implements Screen {
     @Override
     public void dispose() {
         EventBus bus = EventBus.getInstance();
-        bus.unsubscribe(EventBus.RoomEnterEvent.class, onRoomEnter);
-        bus.unsubscribe(EventBus.RoomResetEvent.class, onRoomReset);
+        bus.unsubscribe(EventBus.LevelEnterEvent.class, onLevelEnter);
+        bus.unsubscribe(EventBus.FreezeEvent.class,     onFreeze);
+        bus.unsubscribe(EventBus.RoomEnterEvent.class,  onRoomEnter);
+        bus.unsubscribe(EventBus.RoomResetEvent.class,  onRoomReset);
         batch.dispose();
         lighting.dispose();
         roomManager.dispose();
@@ -247,11 +430,22 @@ public class GameScreen implements Screen {
         clown.dispose();
         entities.dispose();
         riddleOverlay.dispose();
+        miniGameOverlay.dispose();
         timerWidget.dispose();
         screamer.dispose();
         pauseScreen.dispose();
         for (Spider s : spiders) s.dispose();
         audio.dispose();
+        taskTex.dispose();
+        holdTaskTex.dispose();
+        collectItemTex.dispose();
+        runeATex.dispose();
+        runeBTex.dispose();
+        runeCTex.dispose();
+        objMarkerTex.dispose();
+        objHintFont.dispose();
+        hudBatch.dispose();
+        vignetteEffect.dispose();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -286,33 +480,210 @@ public class GameScreen implements Screen {
         if (riddleOverlay.isOpen()) riddleOverlay.hide();
     }
 
-    /** Returns the first unsolved riddle, or null if all are done. */
-    private BaseRiddle getActiveRiddle() {
-        for (BaseRiddle r : riddles) {
-            if (!r.isSolved()) return r;
+    /** Auto-collect Level-3 COLLECT items on proximity (no E needed). */
+    private void checkAutoCollect() {
+        float hx = hero.getX() + Hero.SPRITE_WIDTH  / 2f;
+        float hy = hero.getY() + Hero.SPRITE_HEIGHT / 2f;
+        for (InteractableObject o : objects) {
+            if (!o.isUsed() && o.getKind() == InteractableObject.Kind.COLLECT && o.isInRange(hx, hy)) {
+                o.markUsed();
+                collectedCount++;
+                if (collectedCount >= COLLECT_TOTAL) {
+                    collectedCount = 0;
+                    gsm.markRiddleSolved(gsm.getCurrentRoom(), 0);
+                }
+            }
+        }
+    }
+
+    /** Dynamically adds COLLECT items to the room when triggered. */
+    private void spawnCollectItems() {
+        for (float[] pos : COLLECT_SPAWN) {
+            objects.add(new InteractableObject(InteractableObject.Kind.COLLECT, pos[0], pos[1], 20f, 0));
+        }
+    }
+
+    /** Returns the texture to use when drawing a scroll object. */
+    private Texture textureFor(InteractableObject o) {
+        return switch (o.getKind()) {
+            case HOLD                      -> holdTaskTex;
+            case COLLECT, COLLECT_TRIGGER  -> collectItemTex;
+            case SEQUENCE_NODE             -> runeTexFor(o.getPayload());
+            default                        -> taskTex;
+        };
+    }
+
+    private Texture runeTexFor(int payload) {
+        return switch (payload) {
+            case 0  -> runeATex;
+            case 1  -> runeBTex;
+            default -> runeCTex;
+        };
+    }
+
+    /** True if a scroll sprite should be drawn for this object. */
+    private boolean isScrollVisible(InteractableObject o) {
+        if (o.isUsed()) return false;
+        if (o.getKind() == InteractableObject.Kind.TASK) {
+            int idx = o.getPayload();
+            return idx >= 0 && idx < riddles.size() && !riddles.get(idx).isSolved();
+        }
+        return true;
+    }
+
+    /** Returns the first non-used, in-range object the hero can interact with via E. */
+    private InteractableObject getNearbyObject() {
+        float hx = hero.getX() + Hero.SPRITE_WIDTH  / 2f;
+        float hy = hero.getY() + Hero.SPRITE_HEIGHT / 2f;
+        for (InteractableObject o : objects) {
+            if (!isScrollVisible(o)) continue;
+            if (o.getKind() == InteractableObject.Kind.COLLECT) continue; // auto-collected
+            if (o.isInRange(hx, hy)) return o;
         }
         return null;
     }
 
+    /** Handles one-shot E interaction on a nearby object. */
+    private void handleInteract(InteractableObject obj) {
+        switch (obj.getKind()) {
+            case TASK -> {
+                int idx = obj.getPayload();
+                if (idx >= 0 && idx < riddles.size() && !riddles.get(idx).isSolved()) {
+                    riddleOverlay.show(riddles.get(idx));
+                }
+            }
+            case FAKE -> {
+                FakeEffect.applyRandom(hero, spiders);
+                obj.markUsed();
+            }
+            case MEMORY_TASK -> {
+                miniGameOverlay.showMemory(obj.getPayload(), new MiniGameOverlay.ResultHandler() {
+                    @Override public void onSolved() {
+                        obj.markUsed();
+                        gsm.markRiddleSolved(gsm.getCurrentRoom(), obj.getPayload());
+                    }
+                    @Override public void onPenalty() { gsm.reduceTimer(5f); }
+                });
+            }
+            case SEQ_TASK -> {
+                miniGameOverlay.showSequence(obj.getPayload(), new MiniGameOverlay.ResultHandler() {
+                    @Override public void onSolved() {
+                        obj.markUsed();
+                        gsm.markRiddleSolved(gsm.getCurrentRoom(), obj.getPayload());
+                    }
+                    @Override public void onPenalty() { gsm.reduceTimer(5f); }
+                });
+            }
+            case FIND_CORRECT -> {
+                obj.markUsed();
+                gsm.markRiddleSolved(gsm.getCurrentRoom(), obj.getPayload());
+            }
+            case FIND_WRONG -> {
+                obj.markUsed();
+                if (com.badlogic.gdx.math.MathUtils.randomBoolean())
+                    gsm.reduceTimer(5f);
+                else
+                    audio.playClownSting();
+            }
+            // ── Level 3 ───────────────────────────────────────────────────────
+            case COLLECT_TRIGGER -> {
+                collectedCount = 0;
+                obj.markUsed();
+                spawnCollectItems();
+            }
+            case SEQUENCE_NODE -> {
+                int step = obj.getPayload();
+                if (step == sequenceProgress) {
+                    sequenceProgress++;
+                    if (sequenceProgress >= 3) {
+                        sequenceProgress = 0;
+                        seqHintTimer = 0f;
+                        seqHintMsg   = "";
+                        for (InteractableObject o : objects) {
+                            if (o.getKind() == InteractableObject.Kind.SEQUENCE_NODE) o.markUsed();
+                        }
+                        gsm.markRiddleSolved(gsm.getCurrentRoom(), 0);
+                    } else {
+                        seqHintMsg   = "Good! Progress: " + sequenceProgress + " / 3";
+                        seqHintTimer = 2f;
+                    }
+                } else {
+                    sequenceProgress = 0;
+                    gsm.reduceTimer(5f);
+                    audio.playClownSting();
+                    seqHintMsg   = "Wrong order! Reset  (-5 sec)";
+                    seqHintTimer = 2f;
+                }
+            }
+            default -> {}
+        }
+    }
+
+    /** Returns the hint text shown above a scroll based on its type. */
+    private String hintTextFor(InteractableObject o) {
+        return switch (o.getKind()) {
+            case MEMORY_TASK              -> "[E] Memory task";
+            case SEQ_TASK                 -> "[E] Sequence task";
+            case FIND_CORRECT, FIND_WRONG -> "[E] Examine";
+            case COLLECT_TRIGGER          -> "[E] Activate";
+            case SEQUENCE_NODE            -> "[E] Activate rune";
+            default                       -> "[E] Get task";
+        };
+    }
+
     private List<Ghost> buildGhosts() {
         GhostAppearance look = GhostAppearance.shared("ghost", 32, 32, 0.75f);
-        // Room 1 (x 0-304, y 272-480)
         Ghost g1 = new Ghost(look); g1.placeAt( 80, 360); g1.setRoamBounds( 16, 288, 272, 464);
-        // Room 2 (x 336-640, y 272-480)
         Ghost g2 = new Ghost(look); g2.placeAt(400, 360); g2.setRoamBounds(352, 288, 608, 464);
-        // Room 3 (x 0-640, y 0-240)
         Ghost g3 = new Ghost(look); g3.placeAt(100, 100); g3.setRoamBounds( 16,  16, 608, 224);
         Ghost g4 = new Ghost(look); g4.placeAt(480, 150); g4.setRoamBounds( 16,  16, 608, 224);
         return List.of(g1, g2, g3, g4);
     }
 
-    private List<Spider> buildSpiders() {
-        return List.of(
-            new Spider(150, 300),   // Room 1
-            new Spider(500, 300),   // Room 2
-            new Spider(200,  50),   // Room 3
-            new Spider(420,  50)    // Room 3
-        );
+    private ArrayList<Spider> buildSpiders() {
+        ArrayList<Spider> list = new ArrayList<>();
+        list.add(new Spider(150, 300));
+        list.add(new Spider(500, 300));
+        list.add(new Spider(200,  50));
+        list.add(new Spider(420,  50));
+        return list;
+    }
+
+    private void checkGhostInteractions() {
+        int level = gsm.getCurrentLevel();
+        heroHitbox.set(hero.getX(), hero.getY(),
+                       Hero.SPRITE_WIDTH * 2f, Hero.SPRITE_HEIGHT * 2f);
+
+        for (Ghost g : ghosts) {
+            if (!g.isActive()) continue;
+
+            if (level == 1) {
+                // Proximity vignette: centre-to-centre distance < 3 tiles (48 px)
+                float hcx = hero.getX() + Hero.SPRITE_WIDTH;
+                float hcy = hero.getY() + Hero.SPRITE_HEIGHT;
+                float gcx = g.getX()    + g.getAppearance().getWidth()  / 2f;
+                float gcy = g.getY()    + g.getAppearance().getHeight() / 2f;
+                float dx  = hcx - gcx;
+                float dy  = hcy - gcy;
+                if (dx * dx + dy * dy < 48f * 48f) vignetteActive = true;
+
+            } else if (level == 2) {
+                // Freeze on contact — hero cannot be re-frozen while already frozen
+                if (!hero.isFrozen() && heroHitbox.overlaps(g.getCollisionRect())) {
+                    EventBus.getInstance().publish(new EventBus.FreezeEvent(5f));
+                    g.deactivate(5f);
+                }
+
+            } else if (level == 3) {
+                // Damage on contact with 2 s invincibility window
+                if (ghostHitCooldown <= 0f && heroHitbox.overlaps(g.getCollisionRect())) {
+                    gsm.ghostHit();
+                    g.deactivate(3f);
+                    ghostHitCooldown   = 2f;
+                    ghostDmgFlashTimer = GHOST_DMG_FLASH;
+                }
+            }
+        }
     }
 
     private void checkClownCollision() {

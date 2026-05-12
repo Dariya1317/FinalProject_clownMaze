@@ -3,15 +3,17 @@ package com.example.clownmaze.core.entity.ai;
 import java.util.function.Consumer;
 
 import com.example.clownmaze.core.EventBus;
+import com.example.clownmaze.core.GameStateManager;
 import com.example.clownmaze.core.entity.Hero;
 
 public final class ClownAI {
 
     public static final float CHASE_SPEED = 95f;
 
-    private final IdleState  idleState;
-    private final ChaseState chaseState;
-    private final KillState  killState;
+    private final IdleState   idleState;
+    private final ChaseState  chaseState;
+    private final KillState   killState;
+    private final PatrolState patrolState;
 
     private float x, y;
     private float heroX, heroY;
@@ -33,20 +35,22 @@ public final class ClownAI {
             this.heroY = heroRef.getY();
         }
 
-        this.idleState  = new IdleState(startX, startY);
-        this.chaseState = new ChaseState(new ChaseStrategy());
-        this.killState  = new KillState();
+        this.idleState   = new IdleState(startX, startY);
+        this.chaseState  = new ChaseState(new ChaseStrategy());
+        this.killState   = new KillState();
+        this.patrolState = new PatrolState();
 
         this.currentState = idleState;
 
         onTimerExpired = e -> {
-            if (currentState == idleState) setState(chaseState);
+            if (currentState == idleState || currentState == patrolState)
+                setState(chaseState);
         };
         onScreamerEnd = e -> {
-            if (currentState == killState) setState(idleState);
+            if (currentState == killState) setState(initialStateForLevel());
         };
-        onRoomEnter = e -> setState(idleState);
-        onRoomReset = e -> setState(idleState);
+        onRoomEnter = e -> setState(initialStateForLevel());
+        onRoomReset = e -> setState(initialStateForLevel());
 
         EventBus bus = EventBus.getInstance();
         bus.subscribe(EventBus.TimerExpiredEvent.class, onTimerExpired);
@@ -70,7 +74,13 @@ public final class ClownAI {
     }
 
     public void toIdle() {
-        setState(idleState);
+        setState(initialStateForLevel());
+    }
+
+    /** Level 3 → patrol before timer; all other levels → stand still. */
+    private ClownState initialStateForLevel() {
+        return GameStateManager.getInstance().getCurrentLevel() == 3
+            ? patrolState : idleState;
     }
 
     public void updateHeroPosition(float hx, float hy) {
@@ -106,7 +116,7 @@ public final class ClownAI {
     public float getChaseSpeed()  { return CHASE_SPEED; }
 
     public ClownState getCurrentState() { return currentState; }
-    public boolean isIdle()             { return currentState == idleState; }
+    public boolean isIdle()             { return currentState == idleState || currentState == patrolState; }
     public boolean isChasing()          { return currentState == chaseState; }
     public boolean isKilling()          { return currentState == killState; }
 }
