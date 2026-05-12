@@ -81,9 +81,9 @@ public final class TimerWidget implements Disposable {
         int   roomId = gsm.getCurrentRoom();
         float left   = gsm.getRoomTimeLeft(roomId);
         int   solved = gsm.riddlesSolvedIn(roomId);
-        int   total  = GameStateManager.ROOM_RIDDLE_COUNT.getOrDefault(roomId, 0);
+        int   total  = gsm.riddleCountFor(roomId);
 
-        roomLabel.setText("ROOM " + roomId);
+        roomLabel.setText("L" + gsm.getCurrentLevel() + " · ROOM " + roomId);
         timeLabel.setText(formatTime(left));
         riddleLabel.setText(solved + " / " + total + " riddles");
 

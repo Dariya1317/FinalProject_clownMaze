@@ -70,8 +70,10 @@ public final class EntityRenderer implements Disposable {
 
         TextureRegion frame = anim.getKeyFrame(heroTime, true);
 
-        // Blueish tint when slowed by a spider
-        if (hero.isSlowed()) {
+        // Icy blue when frozen (Level 2), lighter blue when slowed by spider
+        if (hero.isFrozen()) {
+            batch.setColor(0.4f, 0.75f, 1.0f, 1f);
+        } else if (hero.isSlowed()) {
             batch.setColor(0.6f, 0.7f, 1.0f, 1f);
         }
 

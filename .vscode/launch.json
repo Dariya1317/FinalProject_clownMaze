@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Run Clown Maze",
+            "request": "launch",
+            "mainClass": "com.example.clownmaze.lwjgl3.Lwjgl3Launcher",
+            "projectName": "lwjgl3",
+            "cwd": "${workspaceFolder}/assets",
+            "vmArgs": "--enable-native-access=ALL-UNNAMED"
+        }
+    ]
+}
