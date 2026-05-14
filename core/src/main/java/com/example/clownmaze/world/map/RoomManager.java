@@ -148,11 +148,9 @@ public final class RoomManager {
 
         if (completedRoomId == GameStateManager.LAST_ROOM) {
             if (gsm.getCurrentLevel() < GameStateManager.LAST_LEVEL) {
-                // Advance to next level, start from room 1
                 gsm.advanceToLevel(gsm.getCurrentLevel() + 1);
                 loadRoom(GameStateManager.FIRST_ROOM);
             } else {
-                // All levels complete → victory
                 gsm.triggerWin();
             }
             return;
@@ -246,3 +244,4 @@ public final class RoomManager {
         return result;
     }
 }
+

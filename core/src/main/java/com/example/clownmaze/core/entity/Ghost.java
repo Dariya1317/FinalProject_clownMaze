@@ -65,7 +65,6 @@ public final class Ghost implements Cloneable {
         }
     }
 
-    /** Deactivates the ghost for {@code duration} seconds and teleports it within roam bounds. */
     public void deactivate(float duration) {
         active        = false;
         inactiveTimer = duration;
@@ -80,7 +79,6 @@ public final class Ghost implements Cloneable {
 
     public boolean isActive() { return active; }
 
-    /** Returns the ghost's axis-aligned bounding box (reuses a cached instance). */
     public Rectangle getCollisionRect() {
         collisionRect.set(x, y, appearance.getWidth(), appearance.getHeight());
         return collisionRect;
@@ -109,3 +107,4 @@ public final class Ghost implements Cloneable {
     public float getX()                    { return x; }
     public float getY()                    { return y; }
 }
+

@@ -3,18 +3,16 @@ package com.example.clownmaze.core.interact;
 public final class InteractableObject {
 
     public enum Kind {
-        TASK,           // opens a riddle (payload = riddleIndex in the riddles list)
-        FAKE,           // random negative effect — looks identical to TASK
-        HOLD,           // hold E for 3 seconds (payload = riddle index to mark solved)
-        COLLECT,        // pick-up item; all items in room must be collected (payload = group id)
-        SEQUENCE_NODE,  // must be activated in payload order 0→1→2
-        // ── Level 2 ──────────────────────────────────────────────────────────
-        MEMORY_TASK,      // show color for 2.5s → player picks it  (payload = task slot 0-2)
-        SEQ_TASK,         // show sequence for 3s → player repeats  (payload = task slot 0-2)
-        FIND_CORRECT,     // correct object in "find the item" group (payload = task slot 0-2)
-        FIND_WRONG,       // wrong decoy — penalty only              (payload unused)
-        // ── Level 3 ──────────────────────────────────────────────────────────
-        COLLECT_TRIGGER   // press E → spawns COLLECT items for Task 2 (payload = task slot)
+        TASK,           
+        FAKE,          
+        HOLD,           
+        COLLECT,        
+        SEQUENCE_NODE,  
+        MEMORY_TASK,      
+        SEQ_TASK,        
+        FIND_CORRECT,     
+        FIND_WRONG,     
+        COLLECT_TRIGGER   
     }
 
     private final Kind  kind;

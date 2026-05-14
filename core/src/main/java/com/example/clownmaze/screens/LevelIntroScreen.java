@@ -7,10 +7,6 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 
-/**
- * Full-screen level title card shown for DURATION seconds before gameplay begins.
- * Disposes itself automatically when hidden (single-use screen).
- */
 public class LevelIntroScreen implements Screen {
 
     private static final float DURATION = 2.5f;
@@ -21,11 +17,6 @@ public class LevelIntroScreen implements Screen {
     private final SpriteBatch batch;
     private float             elapsed;
 
-    /**
-     * @param game        the libGDX Game instance used for screen switching
-     * @param texturePath path relative to assets root, e.g. "ui/level1.png"
-     * @param nextScreen  screen to transition to after DURATION seconds
-     */
     public LevelIntroScreen(Game game, String texturePath, Screen nextScreen) {
         this.game       = game;
         this.bg         = new Texture(Gdx.files.internal(texturePath));
@@ -63,7 +54,6 @@ public class LevelIntroScreen implements Screen {
     @Override public void pause()  {}
     @Override public void resume() {}
 
-    /** Auto-dispose when the framework hides this screen (it is single-use). */
     @Override
     public void hide() {
         dispose();
@@ -75,3 +65,4 @@ public class LevelIntroScreen implements Screen {
         bg.dispose();
     }
 }
+

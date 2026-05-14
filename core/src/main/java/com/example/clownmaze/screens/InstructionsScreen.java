@@ -20,11 +20,6 @@ import com.badlogic.gdx.utils.Scaling;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
-/**
- * Full-screen instruction carousel.
- * Four pages: General → Level 1 → Level 2 → Level 3.
- * Navigation is entirely mouse-driven (PREV / NEXT / BACK TO MENU).
- */
 public final class InstructionsScreen implements Screen {
 
     private static final int      PAGE_COUNT  = 4;
@@ -35,27 +30,21 @@ public final class InstructionsScreen implements Screen {
         "images/instruction_level3.png"
     };
 
-    // ── Resources ─────────────────────────────────────────────────────────────
     private final Game      game;
     private final Texture[] textures = new Texture[PAGE_COUNT];
     private final Stage     stage;
     private final Skin      skin;
 
-    // ── Scene2D widgets ───────────────────────────────────────────────────────
     private final Image      bgImage;
     private final TextButton prevBtn;
     private final TextButton nextBtn;
 
-    // ── State ─────────────────────────────────────────────────────────────────
     private int     currentPage = 0;
     private boolean disposed    = false;
 
-    // ─────────────────────────────────────────────────────────────────────────
-
     public InstructionsScreen(Game game) {
-        this.game = game; // stored for goBack()
+        this.game = game;
 
-        // Load all page textures (null-safe: missing files are logged, not crashed)
         for (int i = 0; i < PAGE_COUNT; i++) {
             if (Gdx.files.internal(IMAGE_PATHS[i]).exists()) {
                 textures[i] = new Texture(Gdx.files.internal(IMAGE_PATHS[i]));
@@ -68,11 +57,9 @@ public final class InstructionsScreen implements Screen {
         stage = new Stage(new ScreenViewport());
         skin  = buildSkin();
 
-        // ── Background image — full screen, fills its cell ────────────────────
         bgImage = new Image();
         bgImage.setScaling(Scaling.fill);
 
-        // ── Navigation bar ────────────────────────────────────────────────────
         prevBtn             = new TextButton("← Previous", skin, "nav");
         nextBtn             = new TextButton("Next →",     skin, "nav");
         TextButton backBtn  = new TextButton("Back to Menu",    skin, "nav");
@@ -89,7 +76,6 @@ public final class InstructionsScreen implements Screen {
         });
         backBtn.addListener(new ChangeListener() {
             @Override public void changed(ChangeEvent e, Actor a) {
-                // postRunnable defers setScreen until after stage.act() finishes
                 Gdx.app.postRunnable(InstructionsScreen.this::goBack);
             }
         });
@@ -101,13 +87,10 @@ public final class InstructionsScreen implements Screen {
         navBar.add(backBtn).width(200f).height(46f).padRight(18f);
         navBar.add(nextBtn).width(160f).height(46f);
 
-        // ── Layout ────────────────────────────────────────────────────────────
-        // bgWrapper fills the whole screen with the current page image
         Table bgWrapper = new Table();
         bgWrapper.setFillParent(true);
         bgWrapper.add(bgImage).grow();
 
-        // navWrapper sits on top at the bottom edge
         Table navWrapper = new Table();
         navWrapper.setFillParent(true);
         navWrapper.bottom();
@@ -119,13 +102,10 @@ public final class InstructionsScreen implements Screen {
         updatePage();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
     private void goBack() {
         game.setScreen(new MainMenuScreen(game));
     }
 
-    /** Syncs the background image and button disabled-state with currentPage. */
     private void updatePage() {
         if (textures[currentPage] != null) {
             bgImage.setDrawable(
@@ -137,11 +117,9 @@ public final class InstructionsScreen implements Screen {
         nextBtn.setDisabled(currentPage == PAGE_COUNT - 1);
     }
 
-    /** Builds a minimal Skin containing the nav-button style. */
     private static Skin buildSkin() {
         Skin skin = new Skin();
 
-        // 1×1 white pixel used as a tintable background drawable
         Pixmap px = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         px.setColor(Color.WHITE);
         px.fill();
@@ -166,8 +144,6 @@ public final class InstructionsScreen implements Screen {
 
         return skin;
     }
-
-    // ── Screen lifecycle ──────────────────────────────────────────────────────
 
     @Override
     public void show() {
@@ -206,3 +182,4 @@ public final class InstructionsScreen implements Screen {
         skin.dispose();
     }
 }
+

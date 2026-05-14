@@ -121,7 +121,6 @@ public final class GameStateManager {
         }
     }
 
-    /** Reduces room timer by seconds (spider penalty). Fires TimerExpiredEvent if hits 0. */
     public void reduceTimer(float seconds) {
         if (timerExpired || currentScreen != Screen.PLAYING || screamerActive) return;
         float left = roomTimeLeft.getOrDefault(currentRoom, 0f);
@@ -143,7 +142,6 @@ public final class GameStateManager {
         }
     }
 
-    /** Number of tasks required to complete a room, accounting for the current level. */
     public int riddleCountFor(int roomId) {
         if (currentLevel == 2) return 3;        // Level 2: 3 mini-game tasks per room
         if (currentLevel == 3 && roomId == 1) return 3;  // L3 Room 1: 3 hold tasks
@@ -161,12 +159,11 @@ public final class GameStateManager {
         return solvedRiddles.getOrDefault(roomId, Set.of()).size();
     }
 
-    /** Move to the next level, reset all rooms, start from room 1. */
     public void advanceToLevel(int nextLevel) {
         currentLevel = nextLevel;
         currentRoom  = FIRST_ROOM;
         timerExpired = false;
-        heroHp       = MAX_HP;   // restore HP at the start of each new level
+        heroHp       = MAX_HP;   
         solvedRiddles.clear();
         roomTimeLeft.clear();
         for (Map.Entry<Integer, Float> e : ROOM_TIMERS.entrySet()) {
@@ -211,7 +208,6 @@ public final class GameStateManager {
         EventBus.getInstance().publish(new EventBus.RoomResetEvent(currentRoom));
     }
 
-    /** Ghost damage: reduces HP and triggers game over if HP hits 0. No screamer. */
     public void ghostHit() {
         if (currentScreen != Screen.PLAYING || screamerActive) return;
         heroHp--;
@@ -230,7 +226,6 @@ public final class GameStateManager {
         EventBus.getInstance().publish(new EventBus.GameWinEvent());
     }
 
-    /** True when timer <= 5 s and game is running — used for heartbeat effect. */
     public boolean isHeartbeatActive() {
         return currentScreen == Screen.PLAYING
             && !screamerActive

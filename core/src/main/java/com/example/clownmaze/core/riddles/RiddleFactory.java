@@ -11,8 +11,6 @@ public final class RiddleFactory {
 
     private RiddleFactory() {}
 
-    /** Load riddles for a specific level+room pair.
-     *  Falls back to the original room-only files for Level 1. */
     public static List<BaseRiddle> loadRoom(int level, int roomId) {
         String path = "riddles/level" + level + "/room" + roomId + "_riddles.json";
         if (!Gdx.files.internal(path).exists()) {
@@ -27,12 +25,10 @@ public final class RiddleFactory {
         return result;
     }
 
-    /** Legacy overload — keeps existing call sites working. */
     public static List<BaseRiddle> loadRoom(int roomId) {
         return loadRoom(1, roomId);
     }
 
-    /** Build a riddle from JSON using the "type" field (text / choice). */
     private static BaseRiddle createFromJson(int roomId, JsonValue entry) {
         int    id       = entry.getInt("id");
         String question = entry.getString("question");

@@ -3,13 +3,11 @@ package com.example.clownmaze.core.interact;
 import java.util.List;
 
 import com.badlogic.gdx.math.MathUtils;
-
 import com.example.clownmaze.audio.AudioManager;
 import com.example.clownmaze.core.GameStateManager;
 import com.example.clownmaze.core.entity.Hero;
 import com.example.clownmaze.core.entity.Spider;
 
-/** Random negative effect triggered by a FAKE interactable object. */
 public final class FakeEffect {
 
     private FakeEffect() {}

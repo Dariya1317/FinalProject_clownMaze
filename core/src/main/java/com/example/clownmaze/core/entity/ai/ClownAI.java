@@ -77,7 +77,6 @@ public final class ClownAI {
         setState(initialStateForLevel());
     }
 
-    /** Level 3 → patrol before timer; all other levels → stand still. */
     private ClownState initialStateForLevel() {
         return GameStateManager.getInstance().getCurrentLevel() == 3
             ? patrolState : idleState;

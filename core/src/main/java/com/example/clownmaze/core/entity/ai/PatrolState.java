@@ -1,11 +1,6 @@
 package com.example.clownmaze.core.entity.ai;
-
 import com.badlogic.gdx.math.MathUtils;
 
-/**
- * Level-3 clown behaviour before the timer expires.
- * The clown wanders slowly around its spawn anchor instead of standing still.
- */
 public final class PatrolState implements ClownState {
 
     private static final float SPEED      = 32f;   // much slower than ChaseState (95)

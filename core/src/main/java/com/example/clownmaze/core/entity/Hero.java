@@ -4,7 +4,6 @@ import java.util.function.Consumer;
 
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
-
 import com.example.clownmaze.core.EventBus;
 
 public final class Hero {
@@ -46,12 +45,10 @@ public final class Hero {
     }
 
     public void update(float delta) {
-        // Freeze countdown (takes priority over slow)
         if (freezeTimer > 0f) {
             freezeTimer -= delta;
             if (freezeTimer <= 0f) {
                 freezeTimer = 0f;
-                // Restore to SLOWED if slow is still active, otherwise NORMAL
                 state = (slowed != null) ? HeroState.SLOWED : HeroState.NORMAL;
             }
         }
@@ -127,3 +124,4 @@ public final class Hero {
     public boolean   isSlowed()     { return state == HeroState.SLOWED; }
     public float     getSlowTimer() { return slowed == null ? 0f : slowed.getRemaining(); }
 }
+

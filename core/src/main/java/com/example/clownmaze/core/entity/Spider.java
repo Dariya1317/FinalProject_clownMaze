@@ -4,7 +4,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import com.badlogic.gdx.math.MathUtils;
-
 import com.example.clownmaze.core.EventBus;
 import com.example.clownmaze.core.GameStateManager;
 
@@ -61,14 +60,12 @@ public final class Spider {
 
         if (triggered) return;
 
-        // Wander
         dirTimer -= delta;
         if (dirTimer <= 0f) pickDirection();
 
         x += velX * delta;
         y += velY * delta;
 
-        // Bounce off wander-area walls
         float left   = spawnX - WANDER_RADIUS;
         float right  = spawnX + WANDER_RADIUS;
         float bottom = spawnY - WANDER_RADIUS;
@@ -79,7 +76,6 @@ public final class Spider {
         if (y < bottom){ y = bottom; velY = Math.abs(velY); }
         if (y > top)   { y = top;    velY = -Math.abs(velY); }
 
-        // Hero contact
         float dx = heroX - x;
         float dy = heroY - y;
         if (dx * dx + dy * dy <= CONTACT_RADIUS * CONTACT_RADIUS) {

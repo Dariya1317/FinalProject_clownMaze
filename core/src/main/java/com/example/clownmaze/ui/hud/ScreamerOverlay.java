@@ -9,7 +9,6 @@ import com.badlogic.gdx.utils.Disposable;
 
 import com.example.clownmaze.core.EventBus;
 
-/** Full-screen image overlay for clown (3 s) and spider (0.5 s) screamers. */
 public final class ScreamerOverlay implements Disposable {
 
     private static final float CLOWN_DURATION  = 3f;
@@ -65,3 +64,4 @@ public final class ScreamerOverlay implements Disposable {
         batch.dispose();
     }
 }
+

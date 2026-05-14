@@ -5,7 +5,6 @@ import com.badlogic.gdx.math.MathUtils;
 
 public final class CameraController {
 
-    /** Virtual resolution the game was designed for. GL stretches this to the OS window. */
     public static final float VIRTUAL_W = 640f;
     public static final float VIRTUAL_H = 480f;
 
@@ -52,7 +51,6 @@ public final class CameraController {
     }
 
     public void resize(float viewportW, float viewportH) {
-        // Virtual resolution stays fixed; the GL viewport (set by the backend) stretches it.
         camera.update();
     }
 

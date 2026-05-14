@@ -20,14 +20,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
-/**
- * Three-page instruction screen (one page per level).
- * Background: ui/level1.png … ui/level3.png.
- * Navigation via PREV / NEXT buttons or arrow keys; ESC returns to menu.
- */
 public final class InstructionScreen implements Screen {
-
-    // ── Instruction text ──────────────────────────────────────────────────────
 
     private static final String[] PAGES = {
         "=== LEVEL 1: THE TRIAL ===\n\n"
@@ -82,14 +75,10 @@ public final class InstructionScreen implements Screen {
 
     private static final int PAGE_COUNT = PAGES.length;
 
-    // ── Resources ─────────────────────────────────────────────────────────────
-
     private final Game        game;
-    private final Screen      returnTo;  // screen to go back to (MainMenuScreen)
+    private final Screen      returnTo;
     private final SpriteBatch bgBatch;
     private final Texture[]   bgTex = new Texture[PAGE_COUNT];
-
-    // ── Scene2D ───────────────────────────────────────────────────────────────
 
     private final Stage      stage;
     private final Skin       skin;
@@ -100,8 +89,6 @@ public final class InstructionScreen implements Screen {
 
     private int     page     = 0;
     private boolean disposed = false;
-
-    // ── Constructor ───────────────────────────────────────────────────────────
 
     public InstructionScreen(Game game, Screen returnTo) {
         this.game     = game;
@@ -125,8 +112,6 @@ public final class InstructionScreen implements Screen {
         nextBtn                    = new TextButton("NEXT >",       skin, "nav");
         TextButton backBtn         = new TextButton("BACK TO MENU", skin, "nav");
 
-        // Listeners — use postRunnable for screen transitions to avoid
-        // calling dispose() while Stage.act() is still on the call stack.
         prevBtn.addListener(new ChangeListener() {
             @Override public void changed(ChangeEvent e, Actor a) { changePage(-1); }
         });
@@ -139,26 +124,21 @@ public final class InstructionScreen implements Screen {
             }
         });
 
-        // ── Layout ────────────────────────────────────────────────────────────
         Table root = new Table();
         root.setFillParent(true);
         root.bottom();
 
-        // Dark panel at the lower portion of the screen
         Table panel = new Table(skin);
         panel.setBackground(skin.newDrawable("px", new Color(0f, 0f, 0f, 0.82f)));
         panel.pad(16f, 32f, 12f, 32f);
 
-        // Page indicator
         panel.add(pageIndicator).center().padBottom(8f).row();
 
-        // Scrollable content (handles page text that varies in length)
         ScrollPane scroll = new ScrollPane(contentLabel, skin);
         scroll.setScrollingDisabled(true, false);
         scroll.setFadeScrollBars(false);
         panel.add(scroll).growX().height(230f).row();
 
-        // Navigation row
         Table nav = new Table();
         nav.defaults().height(40f).pad(5f, 10f, 5f, 10f);
         nav.add(prevBtn).width(150f);
@@ -171,8 +151,6 @@ public final class InstructionScreen implements Screen {
 
         updatePage();
     }
-
-    // ── Skin ──────────────────────────────────────────────────────────────────
 
     private static Skin buildSkin() {
         Skin skin = new Skin();
@@ -211,13 +189,10 @@ public final class InstructionScreen implements Screen {
         nav.disabled = skin.newDrawable("px", new Color(0.08f, 0.04f, 0.04f, 0.70f));
         skin.add("nav", nav);
 
-        // Default ScrollPane style — no visible scrollbar decorations
         skin.add("default", new ScrollPane.ScrollPaneStyle());
 
         return skin;
     }
-
-    // ── Page navigation ───────────────────────────────────────────────────────
 
     private void changePage(int delta) {
         int next = page + delta;
@@ -232,8 +207,6 @@ public final class InstructionScreen implements Screen {
         prevBtn.setDisabled(page == 0);
         nextBtn.setDisabled(page == PAGE_COUNT - 1);
     }
-
-    // ── Screen lifecycle ──────────────────────────────────────────────────────
 
     @Override
     public void show() {
@@ -256,7 +229,6 @@ public final class InstructionScreen implements Screen {
         stage.act(delta);
         stage.draw();
 
-        // Keyboard shortcuts (handled after Stage so Stage gets priority)
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
             Gdx.app.postRunnable(() -> game.setScreen(returnTo));
         if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)  ||
@@ -290,3 +262,4 @@ public final class InstructionScreen implements Screen {
         skin.dispose();
     }
 }
+

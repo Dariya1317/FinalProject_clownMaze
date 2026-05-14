@@ -15,10 +15,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
-/**
- * Overlay for Level-2 mini-games: "remember the color" and "repeat the sequence".
- * Call showMemory() or showSequence(), then update(dt) + render() each frame.
- */
 public final class MiniGameOverlay implements Disposable {
 
     public interface ResultHandler {
@@ -28,20 +24,18 @@ public final class MiniGameOverlay implements Disposable {
 
     private enum TaskType { MEMORY, SEQUENCE }
 
-    // Sequence variants: the order in which buttons 0/1/2 (A/B/C) must be clicked
     private static final int[][] SEQ_VARIANTS = {
-        {1, 2, 0},   // B >C >A
-        {2, 0, 1},   // C >A >B
-        {0, 2, 1}    // A >C >B
+        {1, 2, 0},
+        {2, 0, 1},
+        {0, 2, 1}
     };
 
     private static final Color[]  COLORS      = {
-        new Color(0.85f, 0.08f, 0.08f, 1f),   // red
-        new Color(0.08f, 0.12f, 0.88f, 1f),   // blue
-        new Color(0.08f, 0.65f, 0.08f, 1f)    // green
+        new Color(0.85f, 0.08f, 0.08f, 1f),
+        new Color(0.08f, 0.12f, 0.88f, 1f),
+        new Color(0.08f, 0.65f, 0.08f, 1f)
     };
     private static final String[] COLOR_NAMES    = { "RED", "BLUE", "GREEN" };
-    // Labels deliberately mismatched to confuse — RED bg says "BLUE", etc.
     private static final String[] MISLEAD_NAMES = { "BLUE", "GREEN", "RED" };
 
     private static final float FLASH_MEMORY   = 1.0f;
@@ -55,8 +49,8 @@ public final class MiniGameOverlay implements Disposable {
     private TaskType      taskType;
     private boolean       flashPhase;
     private float         flashTimer;
-    private int           correctIndex;   // correct button for MEMORY
-    private int[]         seqOrder;       // required click order for SEQUENCE
+    private int           correctIndex;
+    private int[]         seqOrder;
     private int           seqProgress;
     private ResultHandler handler;
     private TextButton[]  buttons;
@@ -68,9 +62,6 @@ public final class MiniGameOverlay implements Disposable {
         skin  = buildSkin();
     }
 
-    // ── Open methods ─────────────────────────────────────────────────────────
-
-    /** Show "remember the color" task. correctColor: 0=RED, 1=BLUE, 2=GREEN. */
     public void showMemory(int correctColor, ResultHandler h) {
         taskType      = TaskType.MEMORY;
         correctIndex  = correctColor;
@@ -83,7 +74,6 @@ public final class MiniGameOverlay implements Disposable {
         Gdx.input.setInputProcessor(stage);
     }
 
-    /** Show "repeat the sequence" task. variant: 0-2 selects the sequence. */
     public void showSequence(int variant, ResultHandler h) {
         seqOrder      = SEQ_VARIANTS[Math.abs(variant) % SEQ_VARIANTS.length];
         seqProgress   = 0;
@@ -96,8 +86,6 @@ public final class MiniGameOverlay implements Disposable {
         buildFlashSequence(seqOrder);
         Gdx.input.setInputProcessor(stage);
     }
-
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     public void update(float dt) {
         if (!open) return;
@@ -148,8 +136,6 @@ public final class MiniGameOverlay implements Disposable {
         stage.dispose();
         skin.dispose();
     }
-
-    // ── Stage builders ────────────────────────────────────────────────────────
 
     private void buildFlashMemory(int colorIdx) {
         stage.clear();
@@ -256,8 +242,6 @@ public final class MiniGameOverlay implements Disposable {
         if (taskType == TaskType.SEQUENCE) seqProgress = 0;
     }
 
-    // ── UI helpers ────────────────────────────────────────────────────────────
-
     private Table makeRoot() {
         Table root = new Table();
         root.setFillParent(true);
@@ -280,8 +264,6 @@ public final class MiniGameOverlay implements Disposable {
     private static String letter(int idx) {
         return String.valueOf((char) ('A' + idx));
     }
-
-    // ── Skin ──────────────────────────────────────────────────────────────────
 
     private static Skin buildSkin() {
         Skin skin = new Skin();
@@ -307,7 +289,6 @@ public final class MiniGameOverlay implements Disposable {
         skin.add("sfont", small);
         skin.add("small", new Label.LabelStyle(small, new Color(0.8f, 0.8f, 0.8f, 1f)));
 
-        // Default button
         TextButton.TextButtonStyle def = new TextButton.TextButtonStyle();
         def.font      = normal;
         def.fontColor = Color.WHITE;
@@ -316,7 +297,6 @@ public final class MiniGameOverlay implements Disposable {
         def.over = skin.newDrawable("px", new Color(0.40f, 0.16f, 0.16f, 1f));
         skin.add("default", def);
 
-        // Coloured styles for memory task buttons (col0=red, col1=blue, col2=green)
         Color[] bases  = {
             new Color(0.55f, 0.06f, 0.06f, 1f),
             new Color(0.06f, 0.06f, 0.60f, 1f),
@@ -339,3 +319,4 @@ public final class MiniGameOverlay implements Disposable {
         return skin;
     }
 }
+

@@ -21,8 +21,6 @@ public class MainMenuScreen implements Screen {
 
     private static final float GLITCH_DURATION = 0.3f;
 
-    // ── Instruction popup pages ───────────────────────────────────────────────
-
     private static final String[] POPUP_PAGES = {
         "=== LEVEL 1: THE TRIAL ===\n\n"
         + "ENVIRONMENT: A dark room with stone walls. Your only light source is a torch.\n\n"
@@ -57,14 +55,12 @@ public class MainMenuScreen implements Screen {
 
     private static final int POPUP_PAGE_COUNT = POPUP_PAGES.length;
 
-    // ── Rendering ─────────────────────────────────────────────────────────────
     private final Game        game;
     private final SpriteBatch batch;
     private final Texture     bgTex;
     private final Texture     logoTex;
     private final Texture     pixelTex;
 
-    // ── Button textures ───────────────────────────────────────────────────────
     private final Texture startDefaultTex;
     private final Texture startHoverTex;
     private final Texture instructDefaultTex;
@@ -72,36 +68,29 @@ public class MainMenuScreen implements Screen {
     private final Texture exitDefaultTex;
     private final Texture exitHoverTex;
 
-    // ── Button hitboxes ───────────────────────────────────────────────────────
     private final Rectangle startBounds    = new Rectangle();
     private final Rectangle instructBounds = new Rectangle();
     private final Rectangle exitBounds     = new Rectangle();
 
-    // ── Menu state ────────────────────────────────────────────────────────────
     private boolean  startHovered;
     private boolean  instructHovered;
     private boolean  exitHovered;
     private boolean  glitchActive;
     private float    glitchTimer;
 
-    // ── Click flash (all buttons glow briefly after any click) ────────────────
     private static final float CLICK_FLASH  = 0.18f;
     private float              clickFlashTimer = 0f;
     private Runnable           clickAction     = null;
 
-    // ── Popup state ───────────────────────────────────────────────────────────
     private final Texture    popupScrollTex;
     private final BitmapFont popupFont;
     private final BitmapFont popupNavFont;
     private boolean          popupOpen = false;
     private int              popupPage = 0;
 
-    // Popup navigation hitboxes (recomputed each frame)
     private final Rectangle popupPrevBounds  = new Rectangle();
     private final Rectangle popupNextBounds  = new Rectangle();
     private final Rectangle popupCloseBounds = new Rectangle();
-
-    // ─────────────────────────────────────────────────────────────────────────
 
     public MainMenuScreen(Game game) {
         this.game = game;
@@ -125,14 +114,12 @@ public class MainMenuScreen implements Screen {
         popupScrollTex = loadTexture("images/popup_scroll_bg.png");
         popupFont    = new BitmapFont();
         popupFont.getData().setScale(0.82f);
-        popupFont.setColor(new Color(0.15f, 0.08f, 0.04f, 1f)); // dark ink colour
+        popupFont.setColor(new Color(0.15f, 0.08f, 0.04f, 1f));
         popupNavFont = new BitmapFont();
         popupNavFont.getData().setScale(0.95f);
 
         computeButtonBounds(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
-
-    // ── Image loading ─────────────────────────────────────────────────────────
 
     private static Texture loadTexture(String path) {
         if (!Gdx.files.internal(path).exists()) {
@@ -143,8 +130,6 @@ public class MainMenuScreen implements Screen {
         return new Texture(Gdx.files.internal(path));
     }
 
-    // ── Button layout ─────────────────────────────────────────────────────────
-
     private static float[] scaledSize(Texture tex, float maxW, float maxH) {
         if (tex == null) return new float[]{0f, 0f};
         float scale = Math.min(1f, Math.min(maxW / tex.getWidth(), maxH / tex.getHeight()));
@@ -152,8 +137,6 @@ public class MainMenuScreen implements Screen {
     }
 
     private void computeButtonBounds(int w, int h) {
-        // Horizontal row: START | INSTRUCTION | EXIT
-        // Each button capped at 30 % of screen width and 35 % of screen height
         float maxBW = w * 0.30f;
         float maxBH = h * 0.35f;
 
@@ -164,7 +147,6 @@ public class MainMenuScreen implements Screen {
         float gap    = 25f;
         float totalW = sSize[0] + iSize[0] + eSize[0] + 2f * gap;
 
-        // Row vertically centred between logo bottom (≈ h * 0.55) and screen bottom
         float rowCenterY = h * 0.30f;
 
         float sx = (w - totalW) / 2f;
@@ -175,8 +157,6 @@ public class MainMenuScreen implements Screen {
         instructBounds.set(ix, rowCenterY - iSize[1] / 2f, iSize[0], iSize[1]);
         exitBounds   .set(ex, rowCenterY - eSize[1] / 2f, eSize[0], eSize[1]);
     }
-
-    // ── Screen lifecycle ──────────────────────────────────────────────────────
 
     @Override
     public void show() {
@@ -191,30 +171,26 @@ public class MainMenuScreen implements Screen {
         float mx = Gdx.input.getX();
         float my = h - Gdx.input.getY();
 
-        // ── Glitch countdown ──────────────────────────────────────────────────
         if (glitchActive) {
             glitchTimer -= delta;
             if (glitchTimer <= 0f) { Gdx.app.exit(); return; }
         }
 
-        // ── Click flash: count down → fire stored action when done ───────────
         if (clickFlashTimer > 0f) {
             clickFlashTimer -= delta;
             if (clickFlashTimer <= 0f && clickAction != null) {
                 Runnable action = clickAction;
                 clickAction = null;
-                action.run(); // may switch screen — render below still runs once
+                action.run();
             }
         }
 
-        // ── Hover update (frozen during flash so glow doesn't flicker) ────────
         if (!glitchActive && !popupOpen && clickFlashTimer <= 0f) {
             startHovered    = startBounds.contains(mx, my);
             instructHovered = instructBounds.contains(mx, my);
             exitHovered     = exitBounds.contains(mx, my);
         }
 
-        // ── Click → start flash, store action (ignored during active flash) ───
         if (!glitchActive && !popupOpen && clickFlashTimer <= 0f
                 && Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
             if (startHovered)    { clickFlashTimer = CLICK_FLASH; clickAction = this::launchGame; }
@@ -222,14 +198,12 @@ public class MainMenuScreen implements Screen {
             if (exitHovered)     { clickFlashTimer = CLICK_FLASH; clickAction = this::triggerGlitch; }
         }
 
-        // ── Popup + keyboard (unchanged) ─────────────────────────────────────
         if (!glitchActive && popupOpen)  handlePopupInput(mx, my);
         if (!glitchActive && !popupOpen) {
             if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER))  { launchGame();    return; }
             if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) { triggerGlitch(); }
         }
 
-        // ── Render ────────────────────────────────────────────────────────────
         ScreenUtils.clear(0f, 0f, 0f, 1f);
         batch.begin();
 
@@ -239,7 +213,6 @@ public class MainMenuScreen implements Screen {
         float logoW = logoH * ((float) logoTex.getWidth() / logoTex.getHeight());
         batch.draw(logoTex, (w - logoW) / 2f, h * 0.55f, logoW, logoH);
 
-        // All buttons glow together for the entire flash window
         boolean glow = clickFlashTimer > 0f && !popupOpen;
 
         if (startDefaultTex != null) {
@@ -260,8 +233,6 @@ public class MainMenuScreen implements Screen {
 
         batch.end();
     }
-
-    // ── Popup ─────────────────────────────────────────────────────────────────
 
     private void openPopup() {
         popupOpen = true;
@@ -287,14 +258,12 @@ public class MainMenuScreen implements Screen {
     }
 
     private void renderPopup(int w, int h) {
-        // ── Dim the menu behind the popup ─────────────────────────────────────
         batch.setColor(0f, 0f, 0f, 0.65f);
         batch.draw(pixelTex, 0f, 0f, w, h);
         batch.setColor(Color.WHITE);
 
         if (popupScrollTex == null) return;
 
-        // ── Scale scroll to fit the screen (max 72 % wide, 82 % tall) ────────
         float scrollW = Math.min(w * 0.72f, popupScrollTex.getWidth());
         float scrollH = scrollW * ((float) popupScrollTex.getHeight() / popupScrollTex.getWidth());
         if (scrollH > h * 0.82f) {
@@ -306,13 +275,10 @@ public class MainMenuScreen implements Screen {
 
         batch.draw(popupScrollTex, scrollX, scrollY, scrollW, scrollH);
 
-        // ── Text area (inside scroll borders) ────────────────────────────────
-        // Horizontal: 11 % margin each side; vertical: 14 % top, 16 % bottom
         float textX = scrollX + scrollW * 0.11f;
         float textW = scrollW * 0.78f;
-        float textTop = scrollY + scrollH * 0.86f; // below scroll top border
+        float textTop = scrollY + scrollH * 0.86f;
 
-        // Page indicator (e.g.  "< 2 / 3 >")
         String indicator = (popupPage > 0 ? "< " : "  ")
                          + "LEVEL " + (popupPage + 1) + " / " + POPUP_PAGE_COUNT
                          + (popupPage < POPUP_PAGE_COUNT - 1 ? " >" : "  ");
@@ -322,11 +288,9 @@ public class MainMenuScreen implements Screen {
             scrollX + (scrollW - indicLayout.width) / 2f,
             textTop + indicLayout.height + 6f);
 
-        // Main content
         popupFont.draw(batch, POPUP_PAGES[popupPage],
             textX, textTop, textW, Align.left, true);
 
-        // ── Navigation buttons ────────────────────────────────────────────────
         float navY   = scrollY + scrollH * 0.10f;
         float navBtnW = 110f;
         float navBtnH = 28f;
@@ -339,7 +303,6 @@ public class MainMenuScreen implements Screen {
         popupCloseBounds.set(closeX, navY, navBtnW, navBtnH);
         popupNextBounds .set(nextX,  navY, navBtnW, navBtnH);
 
-        // Draw button backgrounds
         Color btnBg = new Color(0.20f, 0.07f, 0.03f, 0.85f);
         drawNavBtn(prevX,  navY, navBtnW, navBtnH,
             popupPage > 0 ? "< PREV" : "",                      btnBg, popupPage > 0);
@@ -350,7 +313,6 @@ public class MainMenuScreen implements Screen {
             popupPage < POPUP_PAGE_COUNT - 1);
     }
 
-    /** Renders a single nav button: dark background + centred label. */
     private void drawNavBtn(float x, float y, float bw, float bh,
                             String label, Color bg, boolean active) {
         if (label.isEmpty()) return;
@@ -367,8 +329,6 @@ public class MainMenuScreen implements Screen {
         popupNavFont.draw(batch, label, x + (bw - gl.width) / 2f, y + (bh + gl.height) / 2f);
         popupNavFont.setColor(Color.WHITE);
     }
-
-    // ── Glitch effect ─────────────────────────────────────────────────────────
 
     private void renderGlitch(int w, int h) {
         batch.setColor(0f, 0f, 0f, 0.72f);
@@ -390,8 +350,6 @@ public class MainMenuScreen implements Screen {
         batch.setColor(Color.WHITE);
     }
 
-    // ── Actions ───────────────────────────────────────────────────────────────
-
     private void launchGame() {
         game.setScreen(new LevelIntroScreen(game, "ui/level1.png", new GameScreen(game)));
     }
@@ -399,8 +357,6 @@ public class MainMenuScreen implements Screen {
     private void triggerGlitch() {
         if (!glitchActive) { glitchActive = true; glitchTimer = GLITCH_DURATION; }
     }
-
-    // ── Screen boilerplate ────────────────────────────────────────────────────
 
     @Override
     public void resize(int w, int h) {
@@ -429,3 +385,4 @@ public class MainMenuScreen implements Screen {
         if (popupScrollTex     != null) popupScrollTex.dispose();
     }
 }
+

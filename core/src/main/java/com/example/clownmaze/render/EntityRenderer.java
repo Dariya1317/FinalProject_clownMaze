@@ -11,7 +11,6 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Disposable;
-
 import com.example.clownmaze.core.entity.Ghost;
 import com.example.clownmaze.core.entity.Hero;
 import com.example.clownmaze.core.entity.Spider;
@@ -19,11 +18,9 @@ import com.example.clownmaze.core.entity.ai.ClownAI;
 
 public final class EntityRenderer implements Disposable {
 
-    // Hero animation speeds (seconds per frame)
     private static final float FPS_IDLE  = 0.25f;
     private static final float FPS_WALK  = 0.10f;
     private static final float FPS_RUN   = 0.07f;
-    // Clown
     private static final float FPS_CLOWN_IDLE = 0.50f;
     private static final float FPS_CLOWN_WALK = 0.06f;
 
@@ -36,7 +33,6 @@ public final class EntityRenderer implements Disposable {
     private final Texture ghostTex;
     private final Texture spiderTex;
 
-    // All loaded textures — disposed together
     private final List<Texture> textures = new ArrayList<>();
 
     private float heroTime  = 0f;
@@ -52,14 +48,12 @@ public final class EntityRenderer implements Disposable {
         spiderTex = loadSingle("sprites/spider/spider_sprite.png");
     }
 
-    // ── Update ────────────────────────────────────────────────────────────────
 
     public void update(float dt) {
         heroTime  += dt;
         clownTime += dt;
     }
 
-    // ── Draw ──────────────────────────────────────────────────────────────────
 
     public void renderHero(SpriteBatch batch, Hero hero) {
         boolean moving  = isMoving();
@@ -70,7 +64,6 @@ public final class EntityRenderer implements Disposable {
 
         TextureRegion frame = anim.getKeyFrame(heroTime, true);
 
-        // Icy blue when frozen (Level 2), lighter blue when slowed by spider
         if (hero.isFrozen()) {
             batch.setColor(0.4f, 0.75f, 1.0f, 1f);
         } else if (hero.isSlowed()) {
@@ -81,14 +74,13 @@ public final class EntityRenderer implements Disposable {
             hero.getX(), hero.getY(),
             Hero.SPRITE_WIDTH * 2, Hero.SPRITE_HEIGHT * 2);
 
-        batch.setColor(Color.WHITE); // restore default tint
+        batch.setColor(Color.WHITE); 
     }
 
     public void renderClown(SpriteBatch batch, ClownAI clown) {
         Animation<TextureRegion> anim = clown.isIdle() ? clownIdle : clownWalk;
         TextureRegion frame = anim.getKeyFrame(clownTime, true);
 
-        // Red tint when in KILL state
         if (clown.isKilling()) {
             batch.setColor(1f, 0.3f, 0.3f, 1f);
         }
@@ -99,8 +91,6 @@ public final class EntityRenderer implements Disposable {
 
         batch.setColor(Color.WHITE);
     }
-
-    // ── Internal helpers ──────────────────────────────────────────────────────
 
     private static boolean isMoving() {
         return Gdx.input.isKeyPressed(Input.Keys.W)

@@ -59,7 +59,6 @@ public final class TimerWidget implements Disposable {
         panel.add(timeLabel).row();
         panel.add(riddleLabel).row();
 
-        // Hearts row
         heartImages = new Image[GameStateManager.MAX_HP];
         Table heartsRow = new Table();
         for (int i = 0; i < GameStateManager.MAX_HP; i++) {
@@ -87,7 +86,6 @@ public final class TimerWidget implements Disposable {
         timeLabel.setText(formatTime(left));
         riddleLabel.setText(solved + " / " + total + " riddles");
 
-        // Timer colour + heartbeat pulse
         if (left <= WARN_RED && !gsm.isTimerExpired()) {
             heartbeatPhase += Gdx.graphics.getDeltaTime() * 4f;
             float brightness = 0.55f + 0.45f * Math.abs(MathUtils.sin(heartbeatPhase));
@@ -100,7 +98,6 @@ public final class TimerWidget implements Disposable {
             timeLabel.setColor(Color.WHITE);
         }
 
-        // Hearts
         int hp = gsm.getHeroHp();
         for (int i = 0; i < heartImages.length; i++) {
             heartImages[i].setDrawable(i < hp ? drawableFull : drawableEmpty);
@@ -158,3 +155,4 @@ public final class TimerWidget implements Disposable {
         heartEmptyTex.dispose();
     }
 }
+
