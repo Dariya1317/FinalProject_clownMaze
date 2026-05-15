@@ -32,6 +32,7 @@ public final class RoomManager {
     private final MapLoader   mapLoader;
     private final Map<Integer, RoomDescriptor> descriptors = new LinkedHashMap<>();
     private final List<Room>  rooms = new ArrayList<>();
+    private final BloodDecalSystem bloodDecals = new BloodDecalSystem();
 
     private TiledMap map;
     private int      tileSize;
@@ -82,6 +83,14 @@ public final class RoomManager {
                            .orElseGet(() -> buildFallbackRoom(roomId, desc));
 
         applySpawns(currentRoom);
+        rebuildBloodDecals();
+    }
+
+    private void rebuildBloodDecals() {
+        if (map == null || rooms.isEmpty()) return;
+        TiledMapTileLayer tileLayer = (TiledMapTileLayer) map.getLayers().get(LAYER_TILES);
+        if (tileLayer == null) return;
+        bloodDecals.rebuild(rooms, tileLayer, tileSize);
     }
 
     private Room buildFallbackRoom(int roomId, RoomDescriptor desc) {
@@ -128,6 +137,10 @@ public final class RoomManager {
                 tileType.draw(batch, worldX, worldY, tileSize);
             }
         }
+    }
+
+    public void renderDecals(SpriteBatch batch) {
+        bloodDecals.render(batch);
     }
 
     private void handleRoomComplete(int completedRoomId) {
@@ -178,6 +191,7 @@ public final class RoomManager {
         EventBus bus = EventBus.getInstance();
         bus.unsubscribe(EventBus.RoomCompleteEvent.class, onRoomComplete);
         bus.unsubscribe(EventBus.ScreamerEndEvent.class,  onScreamerEnd);
+        bloodDecals.dispose();
         mapLoader.dispose();
     }
 

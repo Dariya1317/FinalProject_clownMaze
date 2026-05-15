@@ -3,6 +3,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Lwjgl3Launcher",
+            "request": "launch",
+            "mainClass": "com.example.clownmaze.lwjgl3.Lwjgl3Launcher",
+            "projectName": "Clown Maze -lwjgl3"
+        },
+        {
+            "type": "java",
             "name": "Run Clown Maze",
             "request": "launch",
             "mainClass": "com.example.clownmaze.lwjgl3.Lwjgl3Launcher",
