@@ -333,6 +333,7 @@ public class GameScreen implements Screen {
         batch.setProjectionMatrix(camera.getCamera().combined);
         batch.begin();
         roomManager.render(batch);
+        roomManager.renderDecals(batch);
         for (InteractableObject o : objects) {
             if (isScrollVisible(o))
                 batch.draw(textureFor(o), o.getX() - 12f, o.getY() - 12f, 24f, 24f);
