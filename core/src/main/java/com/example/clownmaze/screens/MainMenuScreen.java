@@ -84,10 +84,13 @@ public class MainMenuScreen implements Screen {
     private boolean  glitchActive;
     private float    glitchTimer;
 
-    // ── Click flash (all buttons glow briefly after any click) ────────────────
-    private static final float CLICK_FLASH  = 0.18f;
-    private float              clickFlashTimer = 0f;
-    private Runnable           clickAction     = null;
+    // ── Click flash (only the clicked button glows briefly) ──────────────────
+    private static final float CLICK_FLASH     = 0.18f;
+    private float              clickFlashTimer  = 0f;
+    private Runnable           clickAction      = null;
+    private boolean            flashStart       = false;
+    private boolean            flashInstruct    = false;
+    private boolean            flashExit        = false;
 
     // ── Popup state ───────────────────────────────────────────────────────────
     private final Texture    popupScrollTex;
@@ -200,10 +203,13 @@ public class MainMenuScreen implements Screen {
         // ── Click flash: count down → fire stored action when done ───────────
         if (clickFlashTimer > 0f) {
             clickFlashTimer -= delta;
-            if (clickFlashTimer <= 0f && clickAction != null) {
-                Runnable action = clickAction;
-                clickAction = null;
-                action.run(); // may switch screen — render below still runs once
+            if (clickFlashTimer <= 0f) {
+                flashStart = flashInstruct = flashExit = false;
+                if (clickAction != null) {
+                    Runnable action = clickAction;
+                    clickAction = null;
+                    action.run();
+                }
             }
         }
 
@@ -217,9 +223,9 @@ public class MainMenuScreen implements Screen {
         // ── Click → start flash, store action (ignored during active flash) ───
         if (!glitchActive && !popupOpen && clickFlashTimer <= 0f
                 && Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
-            if (startHovered)    { clickFlashTimer = CLICK_FLASH; clickAction = this::launchGame; }
-            if (instructHovered) { clickFlashTimer = CLICK_FLASH; clickAction = () -> game.setScreen(new InstructionsScreen(game)); }
-            if (exitHovered)     { clickFlashTimer = CLICK_FLASH; clickAction = this::triggerGlitch; }
+            if (startHovered)    { flashStart    = true; clickFlashTimer = CLICK_FLASH; clickAction = this::launchGame; }
+            if (instructHovered) { flashInstruct = true; clickFlashTimer = CLICK_FLASH; clickAction = () -> game.setScreen(new InstructionsScreen(game)); }
+            if (exitHovered)     { flashExit     = true; clickFlashTimer = CLICK_FLASH; clickAction = this::triggerGlitch; }
         }
 
         // ── Popup + keyboard (unchanged) ─────────────────────────────────────
@@ -239,19 +245,16 @@ public class MainMenuScreen implements Screen {
         float logoW = logoH * ((float) logoTex.getWidth() / logoTex.getHeight());
         batch.draw(logoTex, (w - logoW) / 2f, h * 0.55f, logoW, logoH);
 
-        // All buttons glow together for the entire flash window
-        boolean glow = clickFlashTimer > 0f && !popupOpen;
-
         if (startDefaultTex != null) {
-            Texture t = (glow && startHoverTex != null) ? startHoverTex : startDefaultTex;
+            Texture t = (flashStart && startHoverTex != null) ? startHoverTex : startDefaultTex;
             batch.draw(t, startBounds.x, startBounds.y, startBounds.width, startBounds.height);
         }
         if (instructDefaultTex != null) {
-            Texture t = (glow && instructHoverTex != null) ? instructHoverTex : instructDefaultTex;
+            Texture t = (flashInstruct && instructHoverTex != null) ? instructHoverTex : instructDefaultTex;
             batch.draw(t, instructBounds.x, instructBounds.y, instructBounds.width, instructBounds.height);
         }
         if (exitDefaultTex != null) {
-            Texture t = (glow && exitHoverTex != null) ? exitHoverTex : exitDefaultTex;
+            Texture t = (flashExit && exitHoverTex != null) ? exitHoverTex : exitDefaultTex;
             batch.draw(t, exitBounds.x, exitBounds.y, exitBounds.width, exitBounds.height);
         }
 
