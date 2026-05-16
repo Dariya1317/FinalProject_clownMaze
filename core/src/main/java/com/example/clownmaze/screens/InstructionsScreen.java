@@ -73,8 +73,8 @@ public final class InstructionsScreen implements Screen {
         bgImage.setScaling(Scaling.fill);
 
         // ── Navigation bar ────────────────────────────────────────────────────
-        prevBtn             = new TextButton("← Previous", skin, "nav");
-        nextBtn             = new TextButton("Next →",     skin, "nav");
+        prevBtn             = new TextButton("<- Previous", skin, "nav");
+        nextBtn             = new TextButton("Next ->",     skin, "nav");
         TextButton backBtn  = new TextButton("Back to Menu",    skin, "nav");
 
         prevBtn.addListener(new ChangeListener() {

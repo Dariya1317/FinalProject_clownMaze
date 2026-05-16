@@ -244,6 +244,20 @@ public class GameScreen implements Screen {
             return;
         }
 
+        // [DEV] Z → skip to next level (demo shortcut, не трогать)
+        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)
+                && gsm.getScreen() == GameStateManager.Screen.PLAYING
+                && !gsm.isScreamerActive()) {
+            int next = gsm.getCurrentLevel() + 1;
+            if (next <= GameStateManager.LAST_LEVEL) {
+                gsm.advanceToLevel(next);
+                tryLoadRoom(GameStateManager.FIRST_ROOM);
+            } else {
+                gsm.triggerWin();
+            }
+            return;
+        }
+
         // Win → WinScreen
         if (!winHandled && gsm.getScreen() == GameStateManager.Screen.WIN) {
             winHandled = true;
